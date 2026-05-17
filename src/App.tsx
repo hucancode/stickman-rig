@@ -171,80 +171,52 @@ const EXPRESSION_PRESETS: Record<string, Partial<Config>> = {
   crying: { eyeSize: 4, mouthScale: -1.5, mouthOffset: 18, eyebrowOffset: -10, eyebrowRotation: 15, eyebrowThickness: 2, eyelidUpperOffset: -4, eyelidLowerOffset: 6, eyelidUpperCurvature: 1, eyelidLowerCurvature: 0, mouthWidth: 16, showEyelidUpper: true, showEyelidLower: true }
 };
 
+const DEFAULT_CONFIG: Config = {
+    headRadius: 80, chestWidth: 60, stomachWidth: 70, hipWidth: 80, handRadius: 15, footRadius: 15,
+    outlineThickness: 2, smoothLeftArm: true, smoothRightArm: true, smoothLeftLeg: true, smoothRightLeg: true,
+    eyeSize: 4, eyeSpacing: 25, mouthScale: 1, mouthOffset: 15, mouthWidth: 12,
+    eyebrowOffset: -10, eyebrowRotation: 0, eyebrowThickness: 2,
+    eyelidUpperOffset: -5, eyelidLowerOffset: 5, eyelidUpperCurvature: 0, eyelidLowerCurvature: 0,
+    showEyelidUpper: false, showEyelidLower: false,
+    headSquishX: 1, headSquishY: 0.9, headRotationY: 0, headRotationX: 0, headRotationZ: 0, coreRotationY: 0,
+    roughness: 1.5, bowing: 1,
+    leftHandRotation: 0, rightHandRotation: 0, leftFootRotation: 0, rightFootRotation: 0,
+    hairStyle: 'none', accessories: [],
+    hiddenControls: { head: false, core: false, arm: false, hand: false, leg: false, feet: false, accessories: false, hair: false }
+};
+
+const DEFAULT_RIG: RigState = {
+    head: { x: 400, y: 200 }, pelvis: { x: 400, y: 400 }, torsoCurve: { x: 410, y: 300 },
+    leftElbow: { x: 320, y: 300 }, leftHand: { x: 280, y: 350 },
+    rightElbow: { x: 480, y: 300 }, rightHand: { x: 520, y: 350 },
+    leftKnee: { x: 350, y: 470 }, leftFoot: { x: 330, y: 550 },
+    rightKnee: { x: 450, y: 470 }, rightFoot: { x: 470, y: 550 },
+};
+
+function loadSaved<T>(key: string, defaults: T): T {
+  try { return { ...defaults, ...JSON.parse(localStorage.getItem(key) || 'null') }; } catch { return defaults; }
+}
+
 export default function App() {
-  const [config, setConfig] = useState<Config>({
-    headRadius: 80,
-    chestWidth: 60,
-    stomachWidth: 70,
-    hipWidth: 80,
-    handRadius: 15,
-    footRadius: 15,
-    outlineThickness: 2,
-    smoothLeftArm: true,
-    smoothRightArm: true,
-    smoothLeftLeg: true,
-    smoothRightLeg: true,
-    eyeSize: 4,
-    eyeSpacing: 25,
-    mouthScale: 1,
-    mouthOffset: 15,
-    mouthWidth: 12,
-    eyebrowOffset: -10,
-    eyebrowRotation: 0,
-    eyebrowThickness: 2,
-    eyelidUpperOffset: -5,
-    eyelidLowerOffset: 5,
-    eyelidUpperCurvature: 0,
-    eyelidLowerCurvature: 0,
-    showEyelidUpper: false,
-    showEyelidLower: false,
-    headSquishX: 1,
-    headSquishY: 0.9,
-    headRotationY: 0,
-    headRotationX: 0,
-    headRotationZ: 0,
-    coreRotationY: 0,
-    roughness: 1.5,
-    bowing: 1,
-    leftHandRotation: 0,
-    rightHandRotation: 0,
-    leftFootRotation: 0,
-    rightFootRotation: 0,
-    hairStyle: 'none',
-    accessories: [],
-    hiddenControls: {
-      head: false,
-      core: false,
-      arm: false,
-      hand: false,
-      leg: false,
-      feet: false,
-      accessories: false,
-      hair: false,
-    }
-  });
+  const [config, setConfig] = useState<Config>(() => loadSaved('stickman_config', DEFAULT_CONFIG));
 
   const [activeTab, setActiveTab] = useState<'rig' | 'geometry' | 'props' | 'render' | 'expressions'>('rig');
   const [zoom, setZoom] = useState(1);
   const [showPanel, setShowPanel] = useState(true);
   const [pan, setPan] = useState({ x: 0, y: 0 });
   const panRef = useRef<{ startX: number; startY: number; panX: number; panY: number } | null>(null);
+  const [autoSave, setAutoSave] = useState(() => localStorage.getItem('stickman_autosave') === 'true');
 
-  const [rig, setRig] = useState<RigState>({
-    head: { x: 400, y: 200 },
-    pelvis: { x: 400, y: 400 },
-    torsoCurve: { x: 410, y: 300 },
+  const [rig, setRig] = useState<RigState>(() => loadSaved('stickman_rig', DEFAULT_RIG));
 
-    leftElbow: { x: 320, y: 300 },
-    leftHand: { x: 280, y: 350 },
-    rightElbow: { x: 480, y: 300 },
-    rightHand: { x: 520, y: 350 },
+  const saveToStorage = () => {
+    localStorage.setItem('stickman_config', JSON.stringify(config));
+    localStorage.setItem('stickman_rig', JSON.stringify(rig));
+  };
 
-    leftKnee: { x: 350, y: 470 },
-    leftFoot: { x: 330, y: 550 },
-    rightKnee: { x: 450, y: 470 },
-    rightFoot: { x: 470, y: 550 },
-  });
+  useEffect(() => {
+    if (autoSave) saveToStorage();
+  }, [config, rig, autoSave]);
 
   const svgRef = useRef<SVGSVGElement>(null);
   const [draggingNode, setDraggingNode] = useState<string | null>(null);
@@ -543,6 +515,16 @@ export default function App() {
           <h1 className="font-semibold tracking-tight text-slate-200">Stickman Rig</h1>
         </div>
         <div className="flex items-center gap-4">
+          <label className="flex items-center gap-2 text-sm text-slate-400 cursor-pointer select-none">
+            <input type="checkbox" checked={autoSave} onChange={e => { setAutoSave(e.target.checked); localStorage.setItem('stickman_autosave', String(e.target.checked)); }} className="accent-blue-500" />
+            Auto save
+          </label>
+          <button
+            onClick={saveToStorage}
+            className="flex items-center gap-2 px-4 py-2 bg-slate-700 hover:bg-slate-600 text-white rounded-md font-medium transition-colors"
+          >
+            Save
+          </button>
           <button
             onClick={exportSvg}
             className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white rounded-md font-medium transition-colors shadow-sm shadow-blue-900/50"
