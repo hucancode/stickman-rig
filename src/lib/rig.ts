@@ -50,7 +50,6 @@ export interface Config {
   rightHandRotation: number;
   leftFootRotation: number;
   rightFootRotation: number;
-  hairStyle: string;
   accessories: Accessory[];
   hiddenControls: Record<string, boolean>;
 }
@@ -112,8 +111,8 @@ export const DEFAULT_CONFIG: Config = {
   chestRotationY: 0, hipRotationY: 0, twistFalloff: 0.5,
   roughness: 1,
   leftHandRotation: 0, rightHandRotation: 0, leftFootRotation: 0, rightFootRotation: 0,
-  hairStyle: 'none', accessories: [],
-  hiddenControls: { head: false, core: false, arm: false, hand: false, leg: false, feet: false, accessories: false, hair: false },
+  accessories: [],
+  hiddenControls: { head: false, core: false, arm: false, hand: false, leg: false, feet: false, accessories: false },
 };
 
 export const DEFAULT_RIG: RigState = {
@@ -454,34 +453,6 @@ export function computeLimbTransform(limb: Limb, rig: RigState, config: Config):
   return { pathD, transform: transformStr, isSmooth };
 }
 
-export function getHairPath(style: string, headRadius: number): string | null {
-  const h = headRadius;
-  switch (style) {
-    case 'bob':
-      return `M ${-h*1.15} ${h*0.2} C ${-h*1.3} ${-h*0.8} ${-h*0.5} ${-h*1.4} 0 ${-h*1.4} C ${h*0.5} ${-h*1.4} ${h*1.3} ${-h*0.8} ${h*1.15} ${h*0.2} C ${h*1.2} ${h*0.6} ${h*0.6} ${h*0.6} ${h*0.6} ${h*0.2} L ${-h*0.6} ${h*0.2} C ${-h*0.6} ${h*0.6} ${-h*1.2} ${h*0.6} ${-h*1.15} ${h*0.2} Z`;
-    case 'long':
-      return `M ${-h*1.1} ${-h*0.1} C ${-h*1.2} ${-h*1.4} ${h*1.2} ${-h*1.4} ${h*1.1} ${-h*0.1} C ${h*1.2} ${h} ${h*1.5} ${h*2} ${h*1.2} ${h*2.5} C ${h*0.8} ${h*2} ${h*0.8} ${h} ${h*0.6} ${h*0.2} L ${-h*0.6} ${h*0.2} C ${-h*0.8} ${h} ${-h*0.8} ${h*2} ${-h*1.2} ${h*2.5} C ${-h*1.5} ${h*2} ${-h*1.2} ${h} ${-h*1.1} ${-h*0.1} Z`;
-    case 'spiky':
-      return `M ${-h*1.0} ${-h*0.1} L ${-h*0.8} ${-h*1.5} L ${-h*0.3} ${-h*0.9} L 0 ${-h*1.8} L ${h*0.4} ${-h*0.9} L ${h*0.9} ${-h*1.4} L ${h*1.0} ${-h*0.1} Z`;
-    case 'messy':
-      return `M ${-h*1.0} ${h*0.2} L ${-h*1.2} ${-h*0.5} L ${-h*0.8} ${-h*0.4} L ${-h*0.9} ${-h*1.2} L ${-h*0.4} ${-h*0.8} L ${-h*0.2} ${-h*1.6} L ${h*0.2} ${-h*0.9} L ${h*0.6} ${-h*1.5} L ${h*0.8} ${-h*0.7} L ${h*1.2} ${-h*0.9} L ${h*1.0} ${-h*0.1} Z`;
-    case 'short':
-      return `M ${-h} ${-h*0.1} C ${-h*1.1} ${-h*1.2} ${h*1.1} ${-h*1.2} ${h} ${-h*0.1} C ${h*0.8} ${-h*0.4} ${h*0.4} ${-h*0.3} 0 ${-h*0.5} C ${-h*0.4} ${-h*0.3} ${-h*0.8} ${-h*0.4} ${-h} ${-h*0.1} Z`;
-    case 'curly':
-      return `M ${-h*1.0} ${-h*0.1} A ${h*0.5} ${h*0.5} 0 0 1 ${-h*0.6} ${-h*0.9} A ${h*0.5} ${h*0.5} 0 0 1 ${-h*0.1} ${-h*1.2} A ${h*0.5} ${h*0.5} 0 0 1 ${h*0.5} ${-h*1.0} A ${h*0.5} ${h*0.5} 0 0 1 ${h*1.0} ${-h*0.4} A ${h*0.4} ${h*0.4} 0 0 1 ${h*1.1} 0 Z`;
-    case 'bowl':
-      return `M ${-h*1.15} ${-h*0.1} A ${h*1.15} ${h*1.15} 0 0 1 ${h*1.15} ${-h*0.1} Z`;
-    default:
-      return null;
-  }
-}
-
-export interface PigtailPaths {
-  left: string;
-  right: string;
-  bangs: string;
-}
-
 export interface Projection {
   x: number;
   y: number;
@@ -691,11 +662,3 @@ export function computeFacePaths(
   };
 }
 
-export function getPigtailPaths(headRadius: number): PigtailPaths {
-  const h = headRadius;
-  return {
-    left: `M ${-h*0.9} ${-h*0.4} C ${-h*1.8} ${-h*0.8} ${-h*2.2} ${h*0.8} ${-h*1.2} ${h*1.2} C ${-h*1.4} ${h*0.5} ${-h*0.8} 0 ${-h*0.9} ${-h*0.4} Z`,
-    right: `M ${h*0.9} ${-h*0.4} C ${h*1.8} ${-h*0.8} ${h*2.2} ${h*0.8} ${h*1.2} ${h*1.2} C ${h*1.4} ${h*0.5} ${h*0.8} 0 ${h*0.9} ${-h*0.4} Z`,
-    bangs: `M ${-h*1.1} ${-h*0.1} C ${-h*1.2} ${-h*1.4} ${h*1.2} ${-h*1.4} ${h*1.1} ${-h*0.1} C ${h} ${-h*0.4} ${-h} ${-h*0.4} ${-h*1.1} ${-h*0.1} Z`
-  };
-}

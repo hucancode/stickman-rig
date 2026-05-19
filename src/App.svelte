@@ -12,7 +12,7 @@
   import {
     DEFAULT_CONFIG, DEFAULT_RIG, EXPRESSION_PRESETS,
     loadSaved, getLimbPath, getBodyPath, computeShouldersHips, computeLimbs,
-    computeLimbTransform, getHairPath, getPigtailPaths,
+    computeLimbTransform,
     computeCrossSections, computeTorsoSeams,
     computeFacePaths, computeHeadBaseRoll, computeHeadGeometry,
     type Config, type RigState, type Point
@@ -92,8 +92,6 @@
   const baseHeadRoll = $derived(computeHeadBaseRoll(rig));
   const totalHeadRoll = $derived(baseHeadRoll + config.headRotationZ);
 
-  const hairPath = $derived(getHairPath(config.hairStyle, config.headRadius));
-  const pigtailPaths = $derived(getPigtailPaths(config.headRadius));
   const face = $derived(computeFacePaths(config, headGeom.rx, headGeom.ry, headGeom.rz, yawRad, pitchRad));
 
   function exportSvg() {
@@ -161,7 +159,6 @@
 
   const visibilityCats = ['head', 'core', 'arm', 'hand', 'leg', 'feet', 'accessories'];
   const tabs: Tab[] = ['rig', 'geometry', 'expressions', 'props', 'render'];
-  const hairStyles = ['none', 'spiky', 'bob', 'curly', 'bowl', 'short', 'messy', 'pigtails', 'long'];
   const emojis = ['🎩', '🧢', '👑', '👓', '🕶️', '⚔️', '🛡️', '🪄', '💖'];
 </script>
 
@@ -258,15 +255,6 @@
           {/each}
 
           <g transform={`translate(${rig.head.x}, ${rig.head.y}) rotate(${totalHeadRoll})`}>
-            {#if hairPath && config.hairStyle !== 'pigtails'}
-              <RoughPath d={hairPath} fill="currentColor" stroke="currentColor" strokeWidth={config.outlineThickness} strokeLinejoin="round" roughness={config.roughness} />
-            {/if}
-            {#if config.hairStyle === 'pigtails'}
-              <RoughPath d={pigtailPaths.left} fill="currentColor" stroke="currentColor" strokeWidth={config.outlineThickness} strokeLinejoin="round" roughness={config.roughness} />
-              <RoughPath d={pigtailPaths.right} fill="currentColor" stroke="currentColor" strokeWidth={config.outlineThickness} strokeLinejoin="round" roughness={config.roughness} />
-              <RoughPath d={pigtailPaths.bangs} fill="currentColor" stroke="currentColor" strokeWidth={config.outlineThickness} strokeLinejoin="round" roughness={config.roughness} />
-            {/if}
-
             <RoughEllipse
               cx={0} cy={0}
               rx={headGeom.rxView}
@@ -557,17 +545,6 @@
           {/if}
 
           {#if activeTab === 'props'}
-            <ControlSection title="Hair Style">
-              <div class="grid grid-cols-2 gap-2">
-                {#each hairStyles as style (style)}
-                  <button
-                    onclick={() => updateConfig('hairStyle', style)}
-                    class="py-2 px-3 rounded-md text-sm capitalize border transition-colors {config.hairStyle === style ? 'bg-blue-600 border-blue-500 text-white' : 'bg-slate-800 border-slate-700 text-slate-300 hover:bg-slate-700'}"
-                  >{style}</button>
-                {/each}
-              </div>
-            </ControlSection>
-
             <ControlSection title="Accessories">
               <div class="flex gap-2 flex-wrap">
                 {#each emojis as emoji (emoji)}
