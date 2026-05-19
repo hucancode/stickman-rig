@@ -106,13 +106,14 @@
     const localRotDeg = side === -1 ? -rotDeg : rotDeg;
     const r = localRotDeg * Math.PI / 180;
     const cR = Math.cos(r), sR = Math.sin(r);
-    const halfLen = cfg.eyeSize * 1.8;
+    const halfLen = cfg.eyeSize * 2.6;
+    const tiltGain = 1.8;
     const N = 12;
     const pts: Point[] = [];
     for (let i = 0; i <= N; i++) {
       const k = (i / N) * 2 - 1;
       const lx = halfLen * k;
-      pts.push({ x: cx + lx * cR, y: cy + lx * sR });
+      pts.push({ x: cx + lx * cR, y: cy + lx * sR * tiltGain });
     }
     if (overshoot > 0) {
       const innerSign = side === -1 ? 1 : -1;
@@ -142,6 +143,25 @@
       pts.push({ x: mt*mt*x0 + 2*mt*t*x1 + t*t*x2, y: mt*mt*y0 + 2*mt*t*y1 + t*t*y2 });
     }
     return pts;
+  }
+
+  function eyeClipPath(side: 1 | -1, cfg: Config, rx: number, ry: number, rz: number, yaw: number, pitch: number): string {
+    const cx = side * cfg.eyeSpacing;
+    const margin = 2;
+    const halfW = cfg.eyeSize + margin;
+    const topPts: Point[] = cfg.showEyelidUpper
+      ? eyelidSamples(side, cfg, true)
+      : [{ x: cx - halfW, y: -cfg.eyeSize - margin }, { x: cx + halfW, y: -cfg.eyeSize - margin }];
+    const botPts: Point[] = cfg.showEyelidLower
+      ? eyelidSamples(side, cfg, false)
+      : [{ x: cx - halfW, y: cfg.eyeSize + margin }, { x: cx + halfW, y: cfg.eyeSize + margin }];
+    const ordered = [...topPts, ...botPts.slice().reverse()];
+    let d = '';
+    for (let i = 0; i < ordered.length; i++) {
+      const p = project3DFace(ordered[i].x, ordered[i].y, rx, ry, rz, yaw, pitch);
+      d += (i === 0 ? 'M ' : ' L ') + `${p.x.toFixed(2)} ${p.y.toFixed(2)}`;
+    }
+    return d + ' Z';
   }
 
   function mouthSamples(cfg: Config): Point[] {
@@ -178,6 +198,8 @@
   const rightUpperLidPath = $derived(samplePath3D(eyelidSamples(1, config, true), headRx, headRy, headRz, yawRad, pitchRad));
   const leftLowerLidPath = $derived(samplePath3D(eyelidSamples(-1, config, false), headRx, headRy, headRz, yawRad, pitchRad));
   const rightLowerLidPath = $derived(samplePath3D(eyelidSamples(1, config, false), headRx, headRy, headRz, yawRad, pitchRad));
+  const leftEyeClip = $derived(eyeClipPath(-1, config, headRx, headRy, headRz, yawRad, pitchRad));
+  const rightEyeClip = $derived(eyeClipPath(1, config, headRx, headRy, headRz, yawRad, pitchRad));
   const mouthPath = $derived(samplePath3D(mouthSamples(config), headRx, headRy, headRz, yawRad, pitchRad));
   const leftGlabellaPath = $derived(samplePath3D(glabellaSamples(-1, config, glabellaOvershoot), headRx, headRy, headRz, yawRad, pitchRad));
   const rightGlabellaPath = $derived(samplePath3D(glabellaSamples(1, config, glabellaOvershoot), headRx, headRy, headRz, yawRad, pitchRad));
@@ -383,11 +405,19 @@
               <RoughPath d={rightGlabellaPath} fill="none" stroke="currentColor" strokeWidth={config.eyebrowThickness * config.outlineThickness * 0.2} strokeLinecap="round" roughness={config.roughness} bowing={config.bowing} />
             {/if}
 
+            <defs>
+              <clipPath id="eye-clip-left"><path d={leftEyeClip} /></clipPath>
+              <clipPath id="eye-clip-right"><path d={rightEyeClip} /></clipPath>
+            </defs>
             {#if leftEye.visible}
-              <RoughCircle cx={leftEye.x} cy={leftEye.y} r={config.eyeSize} fill="currentColor" stroke="none" strokeWidth={0} roughness={config.roughness} bowing={config.bowing} />
+              <g clip-path="url(#eye-clip-left)">
+                <RoughCircle cx={leftEye.x} cy={leftEye.y} r={config.eyeSize} fill="currentColor" stroke="none" strokeWidth={0} roughness={config.roughness} bowing={config.bowing} />
+              </g>
             {/if}
             {#if rightEye.visible}
-              <RoughCircle cx={rightEye.x} cy={rightEye.y} r={config.eyeSize} fill="currentColor" stroke="none" strokeWidth={0} roughness={config.roughness} bowing={config.bowing} />
+              <g clip-path="url(#eye-clip-right)">
+                <RoughCircle cx={rightEye.x} cy={rightEye.y} r={config.eyeSize} fill="currentColor" stroke="none" strokeWidth={0} roughness={config.roughness} bowing={config.bowing} />
+              </g>
             {/if}
 
             {#if config.showEyelidUpper && leftUpperLidPath}
