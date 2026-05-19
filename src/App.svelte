@@ -14,7 +14,7 @@
     loadSaved, getLimbPath, getBodyPath, computeShouldersHips, computeLimbs,
     computeLimbTransform, getHairPath, getPigtailPaths,
     computeCrossSections, computeTorsoSeams,
-    project3DFace, samplePath3D, computeHeadBaseRoll,
+    computeFacePaths, computeHeadBaseRoll,
     type Config, type RigState, type Point
   } from './lib/rig';
 
@@ -96,113 +96,9 @@
   const baseHeadRoll = $derived(computeHeadBaseRoll(rig));
   const totalHeadRoll = $derived(baseHeadRoll + config.headRotationZ);
 
-  const isAngry = $derived(config.eyebrowRotation < -10);
-  const clampedEyebrowRotation = $derived(isAngry ? -10 : config.eyebrowRotation);
-  const glabellaOvershoot = $derived(isAngry ? (-10 - config.eyebrowRotation) : 0);
-
-  function eyebrowSamples(side: 1 | -1, cfg: Config, rotDeg: number, overshoot: number): Point[] {
-    const cx = side * cfg.eyeSpacing;
-    const cy = cfg.eyebrowOffset;
-    const localRotDeg = side === -1 ? -rotDeg : rotDeg;
-    const r = localRotDeg * Math.PI / 180;
-    const cR = Math.cos(r), sR = Math.sin(r);
-    const halfLen = cfg.eyeSize * 2.6;
-    const tiltGain = 1.8;
-    const N = 12;
-    const pts: Point[] = [];
-    for (let i = 0; i <= N; i++) {
-      const k = (i / N) * 2 - 1;
-      const lx = halfLen * k;
-      pts.push({ x: cx + lx * cR, y: cy + lx * sR * tiltGain });
-    }
-    if (overshoot > 0) {
-      const innerSign = side === -1 ? 1 : -1;
-      const extras: Point[] = [
-        { x: innerSign * (halfLen + 2), y: -2 },
-        { x: innerSign * (halfLen + 4), y: 2 },
-      ];
-      for (const e of extras) {
-        pts.push({ x: cx + e.x * cR - e.y * sR, y: cy + e.x * sR + e.y * cR });
-      }
-    }
-    return pts;
-  }
-
-  function eyelidSamples(side: 1 | -1, cfg: Config, isUpper: boolean): Point[] {
-    const cx = side * cfg.eyeSpacing;
-    const cy = isUpper ? cfg.eyelidUpperOffset : cfg.eyelidLowerOffset;
-    const curve = isUpper ? cfg.eyelidUpperCurvature : cfg.eyelidLowerCurvature;
-    const halfW = cfg.eyeSize * (isUpper ? 1.5 : 1.2);
-    const x0 = cx - halfW, y0 = cy;
-    const x1 = cx, y1 = cy + curve;
-    const x2 = cx + halfW, y2 = cy;
-    const N = 10;
-    const pts: Point[] = [];
-    for (let i = 0; i <= N; i++) {
-      const t = i / N, mt = 1 - t;
-      pts.push({ x: mt*mt*x0 + 2*mt*t*x1 + t*t*x2, y: mt*mt*y0 + 2*mt*t*y1 + t*t*y2 });
-    }
-    return pts;
-  }
-
-  function eyeClipPath(side: 1 | -1, cfg: Config, rx: number, ry: number, rz: number, yaw: number, pitch: number): string {
-    const cx = side * cfg.eyeSpacing;
-    const margin = 2;
-    const halfW = cfg.eyeSize + margin;
-    const topPts: Point[] = cfg.showEyelidUpper
-      ? eyelidSamples(side, cfg, true)
-      : [{ x: cx - halfW, y: -cfg.eyeSize - margin }, { x: cx + halfW, y: -cfg.eyeSize - margin }];
-    const botPts: Point[] = cfg.showEyelidLower
-      ? eyelidSamples(side, cfg, false)
-      : [{ x: cx - halfW, y: cfg.eyeSize + margin }, { x: cx + halfW, y: cfg.eyeSize + margin }];
-    const ordered = [...topPts, ...botPts.slice().reverse()];
-    let d = '';
-    for (let i = 0; i < ordered.length; i++) {
-      const p = project3DFace(ordered[i].x, ordered[i].y, rx, ry, rz, yaw, pitch);
-      d += (i === 0 ? 'M ' : ' L ') + `${p.x.toFixed(2)} ${p.y.toFixed(2)}`;
-    }
-    return d + ' Z';
-  }
-
-  function mouthSamples(cfg: Config): Point[] {
-    const x0 = -cfg.mouthWidth / 2, y0 = cfg.mouthOffset;
-    const x1 = 0, y1 = cfg.mouthOffset + 8 * cfg.mouthScale;
-    const x2 = cfg.mouthWidth / 2, y2 = cfg.mouthOffset;
-    const N = 14;
-    const pts: Point[] = [];
-    for (let i = 0; i <= N; i++) {
-      const t = i / N, mt = 1 - t;
-      pts.push({ x: mt*mt*x0 + 2*mt*t*x1 + t*t*x2, y: mt*mt*y0 + 2*mt*t*y1 + t*t*y2 });
-    }
-    return pts;
-  }
-
-  function glabellaSamples(side: 1 | -1, cfg: Config, overshoot: number): Point[] {
-    const x = side * 3;
-    const y0 = cfg.eyebrowOffset - overshoot * 0.2;
-    const y1 = cfg.eyebrowOffset + overshoot * 0.3;
-    const N = 4;
-    const pts: Point[] = [];
-    for (let i = 0; i <= N; i++) pts.push({ x, y: y0 + (y1 - y0) * (i / N) });
-    return pts;
-  }
-
   const hairPath = $derived(getHairPath(config.hairStyle, config.headRadius));
   const pigtailPaths = $derived(getPigtailPaths(config.headRadius));
-
-  const leftEye = $derived(project3DFace(-config.eyeSpacing, 0, headRx, headRy, headRz, yawRad, pitchRad));
-  const rightEye = $derived(project3DFace(config.eyeSpacing, 0, headRx, headRy, headRz, yawRad, pitchRad));
-  const leftBrowPath = $derived(samplePath3D(eyebrowSamples(-1, config, clampedEyebrowRotation, glabellaOvershoot), headRx, headRy, headRz, yawRad, pitchRad));
-  const rightBrowPath = $derived(samplePath3D(eyebrowSamples(1, config, clampedEyebrowRotation, glabellaOvershoot), headRx, headRy, headRz, yawRad, pitchRad));
-  const leftUpperLidPath = $derived(samplePath3D(eyelidSamples(-1, config, true), headRx, headRy, headRz, yawRad, pitchRad));
-  const rightUpperLidPath = $derived(samplePath3D(eyelidSamples(1, config, true), headRx, headRy, headRz, yawRad, pitchRad));
-  const leftLowerLidPath = $derived(samplePath3D(eyelidSamples(-1, config, false), headRx, headRy, headRz, yawRad, pitchRad));
-  const rightLowerLidPath = $derived(samplePath3D(eyelidSamples(1, config, false), headRx, headRy, headRz, yawRad, pitchRad));
-  const leftEyeClip = $derived(eyeClipPath(-1, config, headRx, headRy, headRz, yawRad, pitchRad));
-  const rightEyeClip = $derived(eyeClipPath(1, config, headRx, headRy, headRz, yawRad, pitchRad));
-  const mouthPath = $derived(samplePath3D(mouthSamples(config), headRx, headRy, headRz, yawRad, pitchRad));
-  const leftGlabellaPath = $derived(samplePath3D(glabellaSamples(-1, config, glabellaOvershoot), headRx, headRy, headRz, yawRad, pitchRad));
-  const rightGlabellaPath = $derived(samplePath3D(glabellaSamples(1, config, glabellaOvershoot), headRx, headRy, headRz, yawRad, pitchRad));
+  const face = $derived(computeFacePaths(config, headRx, headRy, headRz, yawRad, pitchRad));
 
   function exportSvg() {
     if (!svgEl) return;
@@ -398,50 +294,50 @@
               bowing={config.bowing}
             />
 
-            {#if glabellaOvershoot > 0 && leftGlabellaPath}
-              <RoughPath d={leftGlabellaPath} fill="none" stroke="currentColor" strokeWidth={config.eyebrowThickness * config.outlineThickness * 0.2} strokeLinecap="round" roughness={config.roughness} bowing={config.bowing} />
+            {#if face.glabellaOvershoot > 0 && face.leftGlabella}
+              <RoughPath d={face.leftGlabella} fill="none" stroke="currentColor" strokeWidth={config.eyebrowThickness * config.outlineThickness * 0.2} strokeLinecap="round" roughness={config.roughness} bowing={config.bowing} />
             {/if}
-            {#if glabellaOvershoot > 0 && rightGlabellaPath}
-              <RoughPath d={rightGlabellaPath} fill="none" stroke="currentColor" strokeWidth={config.eyebrowThickness * config.outlineThickness * 0.2} strokeLinecap="round" roughness={config.roughness} bowing={config.bowing} />
+            {#if face.glabellaOvershoot > 0 && face.rightGlabella}
+              <RoughPath d={face.rightGlabella} fill="none" stroke="currentColor" strokeWidth={config.eyebrowThickness * config.outlineThickness * 0.2} strokeLinecap="round" roughness={config.roughness} bowing={config.bowing} />
             {/if}
 
             <defs>
-              <clipPath id="eye-clip-left"><path d={leftEyeClip} /></clipPath>
-              <clipPath id="eye-clip-right"><path d={rightEyeClip} /></clipPath>
+              <clipPath id="eye-clip-left"><path d={face.leftEyeClip} /></clipPath>
+              <clipPath id="eye-clip-right"><path d={face.rightEyeClip} /></clipPath>
             </defs>
-            {#if leftEye.visible}
+            {#if face.leftEye.visible}
               <g clip-path="url(#eye-clip-left)">
-                <RoughCircle cx={leftEye.x} cy={leftEye.y} r={config.eyeSize} fill="currentColor" stroke="none" strokeWidth={0} roughness={config.roughness} bowing={config.bowing} />
+                <RoughCircle cx={face.leftEye.x} cy={face.leftEye.y} r={config.eyeSize} fill="currentColor" stroke="none" strokeWidth={0} roughness={config.roughness} bowing={config.bowing} />
               </g>
             {/if}
-            {#if rightEye.visible}
+            {#if face.rightEye.visible}
               <g clip-path="url(#eye-clip-right)">
-                <RoughCircle cx={rightEye.x} cy={rightEye.y} r={config.eyeSize} fill="currentColor" stroke="none" strokeWidth={0} roughness={config.roughness} bowing={config.bowing} />
+                <RoughCircle cx={face.rightEye.x} cy={face.rightEye.y} r={config.eyeSize} fill="currentColor" stroke="none" strokeWidth={0} roughness={config.roughness} bowing={config.bowing} />
               </g>
             {/if}
 
-            {#if config.showEyelidUpper && leftUpperLidPath}
-              <RoughPath d={leftUpperLidPath} fill="none" stroke="currentColor" strokeWidth={config.outlineThickness * 0.4} strokeLinecap="round" roughness={config.roughness} bowing={config.bowing} />
+            {#if config.showEyelidUpper && face.leftUpperLid}
+              <RoughPath d={face.leftUpperLid} fill="none" stroke="currentColor" strokeWidth={config.outlineThickness * 0.4} strokeLinecap="round" roughness={config.roughness} bowing={config.bowing} />
             {/if}
-            {#if config.showEyelidUpper && rightUpperLidPath}
-              <RoughPath d={rightUpperLidPath} fill="none" stroke="currentColor" strokeWidth={config.outlineThickness * 0.4} strokeLinecap="round" roughness={config.roughness} bowing={config.bowing} />
+            {#if config.showEyelidUpper && face.rightUpperLid}
+              <RoughPath d={face.rightUpperLid} fill="none" stroke="currentColor" strokeWidth={config.outlineThickness * 0.4} strokeLinecap="round" roughness={config.roughness} bowing={config.bowing} />
             {/if}
-            {#if config.showEyelidLower && leftLowerLidPath}
-              <RoughPath d={leftLowerLidPath} fill="none" stroke="currentColor" strokeWidth={config.outlineThickness * 0.3} strokeLinecap="round" roughness={config.roughness} bowing={config.bowing} />
+            {#if config.showEyelidLower && face.leftLowerLid}
+              <RoughPath d={face.leftLowerLid} fill="none" stroke="currentColor" strokeWidth={config.outlineThickness * 0.3} strokeLinecap="round" roughness={config.roughness} bowing={config.bowing} />
             {/if}
-            {#if config.showEyelidLower && rightLowerLidPath}
-              <RoughPath d={rightLowerLidPath} fill="none" stroke="currentColor" strokeWidth={config.outlineThickness * 0.3} strokeLinecap="round" roughness={config.roughness} bowing={config.bowing} />
-            {/if}
-
-            {#if leftBrowPath}
-              <RoughPath d={leftBrowPath} fill="none" stroke="currentColor" strokeWidth={config.eyebrowThickness * config.outlineThickness * 0.3} strokeLinecap="round" strokeLinejoin="round" roughness={config.roughness} bowing={config.bowing} />
-            {/if}
-            {#if rightBrowPath}
-              <RoughPath d={rightBrowPath} fill="none" stroke="currentColor" strokeWidth={config.eyebrowThickness * config.outlineThickness * 0.3} strokeLinecap="round" strokeLinejoin="round" roughness={config.roughness} bowing={config.bowing} />
+            {#if config.showEyelidLower && face.rightLowerLid}
+              <RoughPath d={face.rightLowerLid} fill="none" stroke="currentColor" strokeWidth={config.outlineThickness * 0.3} strokeLinecap="round" roughness={config.roughness} bowing={config.bowing} />
             {/if}
 
-            {#if mouthPath}
-              <RoughPath d={mouthPath} fill="none" stroke="currentColor" strokeWidth={config.outlineThickness * 0.5} strokeLinecap="round" roughness={config.roughness} bowing={config.bowing} />
+            {#if face.leftBrow}
+              <RoughPath d={face.leftBrow} fill="none" stroke="currentColor" strokeWidth={config.eyebrowThickness * config.outlineThickness * 0.3} strokeLinecap="round" strokeLinejoin="round" roughness={config.roughness} bowing={config.bowing} />
+            {/if}
+            {#if face.rightBrow}
+              <RoughPath d={face.rightBrow} fill="none" stroke="currentColor" strokeWidth={config.eyebrowThickness * config.outlineThickness * 0.3} strokeLinecap="round" strokeLinejoin="round" roughness={config.roughness} bowing={config.bowing} />
+            {/if}
+
+            {#if face.mouth}
+              <RoughPath d={face.mouth} fill="none" stroke="currentColor" strokeWidth={config.outlineThickness * 0.5} strokeLinecap="round" roughness={config.roughness} bowing={config.bowing} />
             {/if}
           </g>
 

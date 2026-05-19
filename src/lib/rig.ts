@@ -554,6 +554,138 @@ export function computeHeadBaseRoll(rig: RigState): number {
   return -Math.atan2(dx, dy) * 180 / Math.PI;
 }
 
+export interface FacePaths {
+  leftEye: Projection;
+  rightEye: Projection;
+  leftBrow: string;
+  rightBrow: string;
+  leftUpperLid: string;
+  rightUpperLid: string;
+  leftLowerLid: string;
+  rightLowerLid: string;
+  leftEyeClip: string;
+  rightEyeClip: string;
+  mouth: string;
+  leftGlabella: string;
+  rightGlabella: string;
+  glabellaOvershoot: number;
+}
+
+const EYEBROW_ANGRY_THRESHOLD = -10;
+
+function eyebrowSamples(side: 1 | -1, cfg: Config, rotDeg: number, overshoot: number): Point[] {
+  const cx = side * cfg.eyeSpacing;
+  const cy = cfg.eyebrowOffset;
+  const localRotDeg = side === -1 ? -rotDeg : rotDeg;
+  const r = localRotDeg * Math.PI / 180;
+  const cR = Math.cos(r), sR = Math.sin(r);
+  const halfLen = cfg.eyeSize * 2.6;
+  const tiltGain = 1.8;
+  const N = 12;
+  const pts: Point[] = [];
+  for (let i = 0; i <= N; i++) {
+    const k = (i / N) * 2 - 1;
+    const lx = halfLen * k;
+    pts.push({ x: cx + lx * cR, y: cy + lx * sR * tiltGain });
+  }
+  if (overshoot > 0) {
+    const innerSign = side === -1 ? 1 : -1;
+    const extras: Point[] = [
+      { x: innerSign * (halfLen + 2), y: -2 },
+      { x: innerSign * (halfLen + 4), y: 2 },
+    ];
+    for (const e of extras) {
+      pts.push({ x: cx + e.x * cR - e.y * sR, y: cy + e.x * sR + e.y * cR });
+    }
+  }
+  return pts;
+}
+
+function eyelidSamples(side: 1 | -1, cfg: Config, isUpper: boolean): Point[] {
+  const cx = side * cfg.eyeSpacing;
+  const cy = isUpper ? cfg.eyelidUpperOffset : cfg.eyelidLowerOffset;
+  const curve = isUpper ? cfg.eyelidUpperCurvature : cfg.eyelidLowerCurvature;
+  const halfW = cfg.eyeSize * (isUpper ? 1.5 : 1.2);
+  const x0 = cx - halfW, y0 = cy;
+  const x1 = cx, y1 = cy + curve;
+  const x2 = cx + halfW, y2 = cy;
+  const N = 10;
+  const pts: Point[] = [];
+  for (let i = 0; i <= N; i++) {
+    const t = i / N, mt = 1 - t;
+    pts.push({ x: mt*mt*x0 + 2*mt*t*x1 + t*t*x2, y: mt*mt*y0 + 2*mt*t*y1 + t*t*y2 });
+  }
+  return pts;
+}
+
+function eyeClipPath(side: 1 | -1, cfg: Config, rx: number, ry: number, rz: number, yaw: number, pitch: number): string {
+  const cx = side * cfg.eyeSpacing;
+  const margin = 2;
+  const halfW = cfg.eyeSize + margin;
+  const topPts: Point[] = cfg.showEyelidUpper
+    ? eyelidSamples(side, cfg, true)
+    : [{ x: cx - halfW, y: -cfg.eyeSize - margin }, { x: cx + halfW, y: -cfg.eyeSize - margin }];
+  const botPts: Point[] = cfg.showEyelidLower
+    ? eyelidSamples(side, cfg, false)
+    : [{ x: cx - halfW, y: cfg.eyeSize + margin }, { x: cx + halfW, y: cfg.eyeSize + margin }];
+  const ordered = [...topPts, ...botPts.slice().reverse()];
+  let d = '';
+  for (let i = 0; i < ordered.length; i++) {
+    const p = project3DFace(ordered[i].x, ordered[i].y, rx, ry, rz, yaw, pitch);
+    d += (i === 0 ? 'M ' : ' L ') + `${p.x.toFixed(2)} ${p.y.toFixed(2)}`;
+  }
+  return d + ' Z';
+}
+
+function mouthSamples(cfg: Config): Point[] {
+  const x0 = -cfg.mouthWidth / 2, y0 = cfg.mouthOffset;
+  const x1 = 0, y1 = cfg.mouthOffset + 8 * cfg.mouthScale;
+  const x2 = cfg.mouthWidth / 2, y2 = cfg.mouthOffset;
+  const N = 14;
+  const pts: Point[] = [];
+  for (let i = 0; i <= N; i++) {
+    const t = i / N, mt = 1 - t;
+    pts.push({ x: mt*mt*x0 + 2*mt*t*x1 + t*t*x2, y: mt*mt*y0 + 2*mt*t*y1 + t*t*y2 });
+  }
+  return pts;
+}
+
+function glabellaSamples(side: 1 | -1, cfg: Config, overshoot: number): Point[] {
+  const x = side * 3;
+  const y0 = cfg.eyebrowOffset - overshoot * 0.2;
+  const y1 = cfg.eyebrowOffset + overshoot * 0.3;
+  const N = 4;
+  const pts: Point[] = [];
+  for (let i = 0; i <= N; i++) pts.push({ x, y: y0 + (y1 - y0) * (i / N) });
+  return pts;
+}
+
+export function computeFacePaths(
+  cfg: Config,
+  headRx: number, headRy: number, headRz: number,
+  yawRad: number, pitchRad: number,
+): FacePaths {
+  const isAngry = cfg.eyebrowRotation < EYEBROW_ANGRY_THRESHOLD;
+  const clampedRot = isAngry ? EYEBROW_ANGRY_THRESHOLD : cfg.eyebrowRotation;
+  const glabellaOvershoot = isAngry ? (EYEBROW_ANGRY_THRESHOLD - cfg.eyebrowRotation) : 0;
+  return {
+    leftEye: project3DFace(-cfg.eyeSpacing, 0, headRx, headRy, headRz, yawRad, pitchRad),
+    rightEye: project3DFace(cfg.eyeSpacing, 0, headRx, headRy, headRz, yawRad, pitchRad),
+    leftBrow: samplePath3D(eyebrowSamples(-1, cfg, clampedRot, glabellaOvershoot), headRx, headRy, headRz, yawRad, pitchRad),
+    rightBrow: samplePath3D(eyebrowSamples(1, cfg, clampedRot, glabellaOvershoot), headRx, headRy, headRz, yawRad, pitchRad),
+    leftUpperLid: samplePath3D(eyelidSamples(-1, cfg, true), headRx, headRy, headRz, yawRad, pitchRad),
+    rightUpperLid: samplePath3D(eyelidSamples(1, cfg, true), headRx, headRy, headRz, yawRad, pitchRad),
+    leftLowerLid: samplePath3D(eyelidSamples(-1, cfg, false), headRx, headRy, headRz, yawRad, pitchRad),
+    rightLowerLid: samplePath3D(eyelidSamples(1, cfg, false), headRx, headRy, headRz, yawRad, pitchRad),
+    leftEyeClip: eyeClipPath(-1, cfg, headRx, headRy, headRz, yawRad, pitchRad),
+    rightEyeClip: eyeClipPath(1, cfg, headRx, headRy, headRz, yawRad, pitchRad),
+    mouth: samplePath3D(mouthSamples(cfg), headRx, headRy, headRz, yawRad, pitchRad),
+    leftGlabella: samplePath3D(glabellaSamples(-1, cfg, glabellaOvershoot), headRx, headRy, headRz, yawRad, pitchRad),
+    rightGlabella: samplePath3D(glabellaSamples(1, cfg, glabellaOvershoot), headRx, headRy, headRz, yawRad, pitchRad),
+    glabellaOvershoot,
+  };
+}
+
 export function getPigtailPaths(headRadius: number): PigtailPaths {
   const h = headRadius;
   return {
