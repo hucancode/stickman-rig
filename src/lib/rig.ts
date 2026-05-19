@@ -38,8 +38,7 @@ export interface Config {
   eyelidLowerCurvature: number;
   showEyelidUpper: boolean;
   showEyelidLower: boolean;
-  headSquishY: number;
-  headSquishX: number;
+  headSquash: number;
   headRotationY: number;
   headRotationX: number;
   headRotationZ: number;
@@ -47,7 +46,6 @@ export interface Config {
   hipRotationY: number;
   twistFalloff: number;
   roughness: number;
-  bowing: number;
   leftHandRotation: number;
   rightHandRotation: number;
   leftFootRotation: number;
@@ -55,8 +53,6 @@ export interface Config {
   hairStyle: string;
   accessories: Accessory[];
   hiddenControls: Record<string, boolean>;
-  groundY: number;
-  showGround: boolean;
 }
 
 export interface RigState {
@@ -107,18 +103,17 @@ export const EXPRESSION_PRESETS: Record<string, Partial<Config>> = {
 
 export const DEFAULT_CONFIG: Config = {
   headRadius: 80, neckWidth: 35, chestWidth: 75, hipWidth: 80, handRadius: 15, footRadius: 15,
-  outlineThickness: 2, smoothLeftArm: true, smoothRightArm: true, smoothLeftLeg: true, smoothRightLeg: true,
+  outlineThickness: 1, smoothLeftArm: true, smoothRightArm: true, smoothLeftLeg: true, smoothRightLeg: true,
   eyeSize: 4, eyeSpacing: 25, mouthScale: 1, mouthOffset: 15, mouthWidth: 12,
   eyebrowOffset: -10, eyebrowRotation: 0, eyebrowThickness: 2,
   eyelidUpperOffset: -5, eyelidLowerOffset: 5, eyelidUpperCurvature: 0, eyelidLowerCurvature: 0,
   showEyelidUpper: false, showEyelidLower: false,
-  headSquishX: 1, headSquishY: 0.9, headRotationY: 0, headRotationX: 0, headRotationZ: 0,
+  headSquash: 0.2, headRotationY: 0, headRotationX: 0, headRotationZ: 0,
   chestRotationY: 0, hipRotationY: 0, twistFalloff: 0.5,
-  roughness: 1, bowing: 2,
+  roughness: 1,
   leftHandRotation: 0, rightHandRotation: 0, leftFootRotation: 0, rightFootRotation: 0,
   hairStyle: 'none', accessories: [],
   hiddenControls: { head: false, core: false, arm: false, hand: false, leg: false, feet: false, accessories: false, hair: false },
-  groundY: 620, showGround: true,
 };
 
 export const DEFAULT_RIG: RigState = {
@@ -436,15 +431,8 @@ export function computeLimbTransform(limb: Limb, rig: RigState, config: Config):
     }
     const manualRot = limb.id === 'leftLeg' ? config.leftFootRotation : config.rightFootRotation;
 
-    const naturalW = 1.4 * r;
-    const naturalH = 2 * r;
-    let sy = 1;
-    if (config.showGround && limb.end.y + naturalH > config.groundY) {
-      sy = Math.max(0.55, (config.groundY - limb.end.y) / naturalH);
-    }
-    const sx = 1 / sy;
-    const W = naturalW * sx;
-    const H = naturalH * sy;
+    const W = 1.4 * r;
+    const H = 2 * r;
 
     transformStr = `translate(${limb.end.x}, ${limb.end.y}) rotate(${manualRot})`;
     pathD = waterdropPath(W, H, direction);
@@ -545,6 +533,23 @@ export function samplePath3D(
     }
   }
   return path;
+}
+
+export interface HeadGeometry {
+  rx: number;
+  ry: number;
+  rz: number;
+  rxView: number;
+  ryView: number;
+}
+
+export function computeHeadGeometry(config: Config, yawRad: number, pitchRad: number): HeadGeometry {
+  const rx = config.headRadius * (1 + 0.3 * config.headSquash);
+  const ry = config.headRadius * (1 - 0.5 * config.headSquash);
+  const rz = config.headRadius;
+  const rxView = Math.sqrt(rx * rx * Math.cos(yawRad) ** 2 + rz * rz * Math.sin(yawRad) ** 2);
+  const ryView = Math.sqrt(ry * ry * Math.cos(pitchRad) ** 2 + rz * rz * Math.sin(pitchRad) ** 2);
+  return { rx, ry, rz, rxView, ryView };
 }
 
 export function computeHeadBaseRoll(rig: RigState): number {

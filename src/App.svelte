@@ -14,7 +14,7 @@
     loadSaved, getLimbPath, getBodyPath, computeShouldersHips, computeLimbs,
     computeLimbTransform, getHairPath, getPigtailPaths,
     computeCrossSections, computeTorsoSeams,
-    computeFacePaths, computeHeadBaseRoll,
+    computeFacePaths, computeHeadBaseRoll, computeHeadGeometry,
     type Config, type RigState, type Point
   } from './lib/rig';
 
@@ -88,17 +88,13 @@
 
   const yawRad = $derived(config.headRotationY * Math.PI / 180);
   const pitchRad = $derived(config.headRotationX * Math.PI / 180);
-  const headRx = $derived(config.headRadius * config.headSquishX);
-  const headRy = $derived(config.headRadius * config.headSquishY);
-  const headRz = $derived(config.headRadius);
-  const headRxView = $derived(Math.sqrt(headRx * headRx * Math.cos(yawRad) ** 2 + headRz * headRz * Math.sin(yawRad) ** 2));
-  const headRyView = $derived(Math.sqrt(headRy * headRy * Math.cos(pitchRad) ** 2 + headRz * headRz * Math.sin(pitchRad) ** 2));
+  const headGeom = $derived(computeHeadGeometry(config, yawRad, pitchRad));
   const baseHeadRoll = $derived(computeHeadBaseRoll(rig));
   const totalHeadRoll = $derived(baseHeadRoll + config.headRotationZ);
 
   const hairPath = $derived(getHairPath(config.hairStyle, config.headRadius));
   const pigtailPaths = $derived(getPigtailPaths(config.headRadius));
-  const face = $derived(computeFacePaths(config, headRx, headRy, headRz, yawRad, pitchRad));
+  const face = $derived(computeFacePaths(config, headGeom.rx, headGeom.ry, headGeom.rz, yawRad, pitchRad));
 
   function exportSvg() {
     if (!svgEl) return;
@@ -222,23 +218,12 @@
           class="w-full h-full text-slate-900 select-none"
           style:touch-action="none"
         >
-          {#if config.showGround}
-            <RoughPath
-              d={`M 0 ${config.groundY} L 800 ${config.groundY}`}
-              fill="none"
-              stroke="currentColor"
-              strokeWidth={config.outlineThickness * 0.6}
-              roughness={config.roughness}
-              bowing={config.bowing}
-            />
-          {/if}
-
           {#each backLimbs as limb (limb.id)}
             {@const lt = computeLimbTransform(limb, rig, config)}
             <g stroke="currentColor" stroke-width={config.outlineThickness} stroke-linecap="round" stroke-linejoin="round">
-              <RoughPath d={getLimbPath(limb.start, limb.joint, limb.end, lt.isSmooth)} fill="none" strokeWidth={config.outlineThickness} roughness={config.roughness} bowing={config.bowing} />
+              <RoughPath d={getLimbPath(limb.start, limb.joint, limb.end, lt.isSmooth)} fill="none" strokeWidth={config.outlineThickness} roughness={config.roughness} />
               <g transform={lt.transform}>
-                <RoughPath d={lt.pathD} fill="white" strokeWidth={config.outlineThickness} roughness={config.roughness} bowing={config.bowing} />
+                <RoughPath d={lt.pathD} fill="white" strokeWidth={config.outlineThickness} roughness={config.roughness} />
               </g>
             </g>
           {/each}
@@ -251,8 +236,7 @@
             strokeLinecap="round"
             strokeLinejoin="round"
             roughness={config.roughness}
-            bowing={config.bowing}
-          />
+                     />
 
           {#each torsoSeams as seam (seam.id)}
             {#if seam.back}
@@ -266,39 +250,38 @@
           {#each frontLimbs as limb (limb.id)}
             {@const lt = computeLimbTransform(limb, rig, config)}
             <g stroke="currentColor" stroke-width={config.outlineThickness} stroke-linecap="round" stroke-linejoin="round">
-              <RoughPath d={getLimbPath(limb.start, limb.joint, limb.end, lt.isSmooth)} fill="none" strokeWidth={config.outlineThickness} roughness={config.roughness} bowing={config.bowing} />
+              <RoughPath d={getLimbPath(limb.start, limb.joint, limb.end, lt.isSmooth)} fill="none" strokeWidth={config.outlineThickness} roughness={config.roughness} />
               <g transform={lt.transform}>
-                <RoughPath d={lt.pathD} fill="white" strokeWidth={config.outlineThickness} roughness={config.roughness} bowing={config.bowing} />
+                <RoughPath d={lt.pathD} fill="white" strokeWidth={config.outlineThickness} roughness={config.roughness} />
               </g>
             </g>
           {/each}
 
           <g transform={`translate(${rig.head.x}, ${rig.head.y}) rotate(${totalHeadRoll})`}>
             {#if hairPath && config.hairStyle !== 'pigtails'}
-              <RoughPath d={hairPath} fill="currentColor" stroke="currentColor" strokeWidth={config.outlineThickness} strokeLinejoin="round" roughness={config.roughness} bowing={config.bowing} />
+              <RoughPath d={hairPath} fill="currentColor" stroke="currentColor" strokeWidth={config.outlineThickness} strokeLinejoin="round" roughness={config.roughness} />
             {/if}
             {#if config.hairStyle === 'pigtails'}
-              <RoughPath d={pigtailPaths.left} fill="currentColor" stroke="currentColor" strokeWidth={config.outlineThickness} strokeLinejoin="round" roughness={config.roughness} bowing={config.bowing} />
-              <RoughPath d={pigtailPaths.right} fill="currentColor" stroke="currentColor" strokeWidth={config.outlineThickness} strokeLinejoin="round" roughness={config.roughness} bowing={config.bowing} />
-              <RoughPath d={pigtailPaths.bangs} fill="currentColor" stroke="currentColor" strokeWidth={config.outlineThickness} strokeLinejoin="round" roughness={config.roughness} bowing={config.bowing} />
+              <RoughPath d={pigtailPaths.left} fill="currentColor" stroke="currentColor" strokeWidth={config.outlineThickness} strokeLinejoin="round" roughness={config.roughness} />
+              <RoughPath d={pigtailPaths.right} fill="currentColor" stroke="currentColor" strokeWidth={config.outlineThickness} strokeLinejoin="round" roughness={config.roughness} />
+              <RoughPath d={pigtailPaths.bangs} fill="currentColor" stroke="currentColor" strokeWidth={config.outlineThickness} strokeLinejoin="round" roughness={config.roughness} />
             {/if}
 
             <RoughEllipse
               cx={0} cy={0}
-              rx={headRxView}
-              ry={headRyView}
+              rx={headGeom.rxView}
+              ry={headGeom.ryView}
               fill="white"
               stroke="currentColor"
               strokeWidth={config.outlineThickness}
               roughness={config.roughness}
-              bowing={config.bowing}
-            />
+                         />
 
             {#if face.glabellaOvershoot > 0 && face.leftGlabella}
-              <RoughPath d={face.leftGlabella} fill="none" stroke="currentColor" strokeWidth={config.eyebrowThickness * config.outlineThickness * 0.2} strokeLinecap="round" roughness={config.roughness} bowing={config.bowing} />
+              <RoughPath d={face.leftGlabella} fill="none" stroke="currentColor" strokeWidth={config.eyebrowThickness * config.outlineThickness * 0.2} strokeLinecap="round" roughness={config.roughness} />
             {/if}
             {#if face.glabellaOvershoot > 0 && face.rightGlabella}
-              <RoughPath d={face.rightGlabella} fill="none" stroke="currentColor" strokeWidth={config.eyebrowThickness * config.outlineThickness * 0.2} strokeLinecap="round" roughness={config.roughness} bowing={config.bowing} />
+              <RoughPath d={face.rightGlabella} fill="none" stroke="currentColor" strokeWidth={config.eyebrowThickness * config.outlineThickness * 0.2} strokeLinecap="round" roughness={config.roughness} />
             {/if}
 
             <defs>
@@ -307,37 +290,37 @@
             </defs>
             {#if face.leftEye.visible}
               <g clip-path="url(#eye-clip-left)">
-                <RoughCircle cx={face.leftEye.x} cy={face.leftEye.y} r={config.eyeSize} fill="currentColor" stroke="none" strokeWidth={0} roughness={config.roughness} bowing={config.bowing} />
+                <RoughCircle cx={face.leftEye.x} cy={face.leftEye.y} r={config.eyeSize} fill="currentColor" stroke="none" strokeWidth={0} roughness={config.roughness} />
               </g>
             {/if}
             {#if face.rightEye.visible}
               <g clip-path="url(#eye-clip-right)">
-                <RoughCircle cx={face.rightEye.x} cy={face.rightEye.y} r={config.eyeSize} fill="currentColor" stroke="none" strokeWidth={0} roughness={config.roughness} bowing={config.bowing} />
+                <RoughCircle cx={face.rightEye.x} cy={face.rightEye.y} r={config.eyeSize} fill="currentColor" stroke="none" strokeWidth={0} roughness={config.roughness} />
               </g>
             {/if}
 
             {#if config.showEyelidUpper && face.leftUpperLid}
-              <RoughPath d={face.leftUpperLid} fill="none" stroke="currentColor" strokeWidth={config.outlineThickness * 0.4} strokeLinecap="round" roughness={config.roughness} bowing={config.bowing} />
+              <RoughPath d={face.leftUpperLid} fill="none" stroke="currentColor" strokeWidth={config.outlineThickness * 0.4} strokeLinecap="round" roughness={config.roughness} />
             {/if}
             {#if config.showEyelidUpper && face.rightUpperLid}
-              <RoughPath d={face.rightUpperLid} fill="none" stroke="currentColor" strokeWidth={config.outlineThickness * 0.4} strokeLinecap="round" roughness={config.roughness} bowing={config.bowing} />
+              <RoughPath d={face.rightUpperLid} fill="none" stroke="currentColor" strokeWidth={config.outlineThickness * 0.4} strokeLinecap="round" roughness={config.roughness} />
             {/if}
             {#if config.showEyelidLower && face.leftLowerLid}
-              <RoughPath d={face.leftLowerLid} fill="none" stroke="currentColor" strokeWidth={config.outlineThickness * 0.3} strokeLinecap="round" roughness={config.roughness} bowing={config.bowing} />
+              <RoughPath d={face.leftLowerLid} fill="none" stroke="currentColor" strokeWidth={config.outlineThickness * 0.3} strokeLinecap="round" roughness={config.roughness} />
             {/if}
             {#if config.showEyelidLower && face.rightLowerLid}
-              <RoughPath d={face.rightLowerLid} fill="none" stroke="currentColor" strokeWidth={config.outlineThickness * 0.3} strokeLinecap="round" roughness={config.roughness} bowing={config.bowing} />
+              <RoughPath d={face.rightLowerLid} fill="none" stroke="currentColor" strokeWidth={config.outlineThickness * 0.3} strokeLinecap="round" roughness={config.roughness} />
             {/if}
 
             {#if face.leftBrow}
-              <RoughPath d={face.leftBrow} fill="none" stroke="currentColor" strokeWidth={config.eyebrowThickness * config.outlineThickness * 0.3} strokeLinecap="round" strokeLinejoin="round" roughness={config.roughness} bowing={config.bowing} />
+              <RoughPath d={face.leftBrow} fill="none" stroke="currentColor" strokeWidth={config.eyebrowThickness * config.outlineThickness * 0.3} strokeLinecap="round" strokeLinejoin="round" roughness={config.roughness} />
             {/if}
             {#if face.rightBrow}
-              <RoughPath d={face.rightBrow} fill="none" stroke="currentColor" strokeWidth={config.eyebrowThickness * config.outlineThickness * 0.3} strokeLinecap="round" strokeLinejoin="round" roughness={config.roughness} bowing={config.bowing} />
+              <RoughPath d={face.rightBrow} fill="none" stroke="currentColor" strokeWidth={config.eyebrowThickness * config.outlineThickness * 0.3} strokeLinecap="round" strokeLinejoin="round" roughness={config.roughness} />
             {/if}
 
             {#if face.mouth}
-              <RoughPath d={face.mouth} fill="none" stroke="currentColor" strokeWidth={config.outlineThickness * 0.5} strokeLinecap="round" roughness={config.roughness} bowing={config.bowing} />
+              <RoughPath d={face.mouth} fill="none" stroke="currentColor" strokeWidth={config.outlineThickness * 0.5} strokeLinecap="round" roughness={config.roughness} />
             {/if}
           </g>
 
@@ -531,8 +514,7 @@
 
             <ControlSection title="Head & Face">
               <ScalarSlider label="Head Scale" value={config.headRadius} min={20} max={200} onChange={(v) => updateConfig('headRadius', v)} />
-              <ScalarSlider label="Head Squish (Width)" value={config.headSquishX} min={0.5} max={1.5} step={0.05} onChange={(v) => updateConfig('headSquishX', v)} />
-              <ScalarSlider label="Head Squish (Height)" value={config.headSquishY} min={0.5} max={1.5} step={0.05} onChange={(v) => updateConfig('headSquishY', v)} />
+              <ScalarSlider label="Head Squash/Stretch" value={config.headSquash} min={-1} max={1} step={0.05} onChange={(v) => updateConfig('headSquash', v)} />
               <ScalarSlider label="Eye Size" value={config.eyeSize} min={1} max={15} step={0.5} onChange={(v) => updateConfig('eyeSize', v)} />
               <ScalarSlider label="Eye Spacing" value={config.eyeSpacing} min={5} max={60} onChange={(v) => updateConfig('eyeSpacing', v)} />
             </ControlSection>
@@ -620,14 +602,8 @@
 
           {#if activeTab === 'render'}
             <ControlSection title="Render Options">
-              <ScalarSlider label="Outline Size" value={config.outlineThickness} min={1} max={50} onChange={(v) => updateConfig('outlineThickness', v)} />
+              <ScalarSlider label="Outline Size" value={config.outlineThickness} min={0.1} max={10} step={0.1} onChange={(v) => updateConfig('outlineThickness', v)} />
               <ScalarSlider label="Roughness" value={config.roughness} min={0} max={4} step={0.1} onChange={(v) => updateConfig('roughness', v)} />
-              <ScalarSlider label="Bowing" value={config.bowing} min={0} max={10} step={0.1} onChange={(v) => updateConfig('bowing', v)} />
-            </ControlSection>
-
-            <ControlSection title="Ground">
-              <ToggleControl label="Show Ground" checked={config.showGround} onChange={(v) => updateConfig('showGround', v)} />
-              <ScalarSlider label="Ground Y" value={config.groundY} min={0} max={800} step={1} onChange={(v) => updateConfig('groundY', v)} />
             </ControlSection>
           {/if}
         </div>
