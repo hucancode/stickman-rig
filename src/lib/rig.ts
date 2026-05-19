@@ -43,7 +43,9 @@ export interface Config {
   headRotationY: number;
   headRotationX: number;
   headRotationZ: number;
-  coreRotationY: number;
+  chestRotationY: number;
+  hipRotationY: number;
+  twistFalloff: number;
   roughness: number;
   bowing: number;
   leftHandRotation: number;
@@ -57,8 +59,9 @@ export interface Config {
 
 export interface RigState {
   head: Point;
-  pelvis: Point;
-  torsoCurve: Point;
+  chest: Point;
+  belly: Point;
+  hip: Point;
   leftElbow: Point;
   leftHand: Point;
   rightElbow: Point;
@@ -108,7 +111,8 @@ export const DEFAULT_CONFIG: Config = {
   eyebrowOffset: -10, eyebrowRotation: 0, eyebrowThickness: 2,
   eyelidUpperOffset: -5, eyelidLowerOffset: 5, eyelidUpperCurvature: 0, eyelidLowerCurvature: 0,
   showEyelidUpper: false, showEyelidLower: false,
-  headSquishX: 1, headSquishY: 0.9, headRotationY: 0, headRotationX: 0, headRotationZ: 0, coreRotationY: 0,
+  headSquishX: 1, headSquishY: 0.9, headRotationY: 0, headRotationX: 0, headRotationZ: 0,
+  chestRotationY: 0, hipRotationY: 0, twistFalloff: 0,
   roughness: 1.5, bowing: 1,
   leftHandRotation: 0, rightHandRotation: 0, leftFootRotation: 0, rightFootRotation: 0,
   hairStyle: 'none', accessories: [],
@@ -116,12 +120,20 @@ export const DEFAULT_CONFIG: Config = {
 };
 
 export const DEFAULT_RIG: RigState = {
-  head: { x: 400, y: 200 }, pelvis: { x: 400, y: 400 }, torsoCurve: { x: 410, y: 300 },
-  leftElbow: { x: 320, y: 300 }, leftHand: { x: 280, y: 350 },
-  rightElbow: { x: 480, y: 300 }, rightHand: { x: 520, y: 350 },
+  head: { x: 400, y: 200 },
+  chest: { x: 400, y: 280 },
+  belly: { x: 410, y: 340 },
+  hip: { x: 400, y: 400 },
+  leftElbow: { x: 320, y: 320 }, leftHand: { x: 280, y: 370 },
+  rightElbow: { x: 480, y: 320 }, rightHand: { x: 520, y: 370 },
   leftKnee: { x: 350, y: 470 }, leftFoot: { x: 330, y: 550 },
   rightKnee: { x: 450, y: 470 }, rightFoot: { x: 470, y: 550 },
 };
+
+export const CHEST_BOTTOM_T = 0.45;
+export const HIP_TOP_T = 0.55;
+const SHOULDER_T = 0.05;
+const HIP_ATTACH_T = 0.95;
 
 export function loadSaved<T>(key: string, defaults: T): T {
   try { return { ...defaults, ...JSON.parse(localStorage.getItem(key) || 'null') }; } catch { return defaults; }
@@ -149,19 +161,58 @@ export function getBezierNormal(t: number, p0: Point, p1: Point, p2: Point): Poi
   return { x: -d.y / len, y: d.x / len };
 }
 
-export function getPointOnCylinder(
+function lerp(a: number, b: number, t: number): number {
+  return a + (b - a) * t;
+}
+
+export function getWidthAt(t: number, config: Config): number {
+  const w0 = config.chestWidth;
+  const w1 = config.stomachWidth;
+  const w2 = config.hipWidth;
+  const mt = 1 - t;
+  return mt * mt * w0 + 2 * mt * t * w1 + t * t * w2;
+}
+
+function clamp01(x: number): number {
+  return Math.max(0, Math.min(1, x));
+}
+
+export function getInnerTwists(config: Config): { lowerChest: number; upperHip: number } {
+  const f = clamp01(config.twistFalloff);
+  return {
+    lowerChest: config.chestRotationY * (1 - f),
+    upperHip: config.hipRotationY * (1 - f),
+  };
+}
+
+export function getTwistAt(t: number, config: Config): number {
+  const { lowerChest, upperHip } = getInnerTwists(config);
+  if (t <= CHEST_BOTTOM_T) {
+    const k = CHEST_BOTTOM_T > 0 ? t / CHEST_BOTTOM_T : 1;
+    return lerp(config.chestRotationY, lowerChest, k);
+  }
+  if (t >= HIP_TOP_T) {
+    const denom = 1 - HIP_TOP_T;
+    const k = denom > 0 ? (t - HIP_TOP_T) / denom : 0;
+    return lerp(upperHip, config.hipRotationY, k);
+  }
+  const k = (t - CHEST_BOTTOM_T) / (HIP_TOP_T - CHEST_BOTTOM_T);
+  return lerp(lowerChest, upperHip, k);
+}
+
+export function getPointOnTorso(
   rig: RigState,
   t: number,
   width: number,
   angleDeg: number,
-  rotationYDeg: number
+  twistDeg: number
 ): { point: Point; z: number } {
-  const normal = getBezierNormal(t, rig.head, rig.torsoCurve, rig.pelvis);
+  const normal = getBezierNormal(t, rig.chest, rig.belly, rig.hip);
   const R = width / 2;
-  const rad = (angleDeg + rotationYDeg) * Math.PI / 180;
+  const rad = (angleDeg + twistDeg) * Math.PI / 180;
   const xOffset = R * Math.sin(rad);
   const zOffset = R * Math.cos(rad);
-  const spine = getBezierPoint(t, rig.head, rig.torsoCurve, rig.pelvis);
+  const spine = getBezierPoint(t, rig.chest, rig.belly, rig.hip);
   return {
     point: { x: spine.x + normal.x * xOffset, y: spine.y + normal.y * xOffset },
     z: zOffset
@@ -185,10 +236,12 @@ export interface ShoulderHip {
 }
 
 export function computeShouldersHips(rig: RigState, config: Config): ShoulderHip {
-  const rightShoulder = getPointOnCylinder(rig, 0.3, Math.max(1, config.chestWidth * 0.95), -90, config.coreRotationY);
-  const leftShoulder = getPointOnCylinder(rig, 0.3, Math.max(1, config.chestWidth * 0.95), 90, config.coreRotationY);
-  const rightHip = getPointOnCylinder(rig, 1, Math.max(1, config.hipWidth), -90, config.coreRotationY);
-  const leftHip = getPointOnCylinder(rig, 1, Math.max(1, config.hipWidth), 90, config.coreRotationY);
+  const sWidth = Math.max(1, getWidthAt(SHOULDER_T, config) * 0.95);
+  const hWidth = Math.max(1, getWidthAt(HIP_ATTACH_T, config));
+  const rightShoulder = getPointOnTorso(rig, SHOULDER_T, sWidth, -90, config.chestRotationY);
+  const leftShoulder = getPointOnTorso(rig, SHOULDER_T, sWidth, 90, config.chestRotationY);
+  const rightHip = getPointOnTorso(rig, HIP_ATTACH_T, hWidth, -90, config.hipRotationY);
+  const leftHip = getPointOnTorso(rig, HIP_ATTACH_T, hWidth, 90, config.hipRotationY);
 
   leftShoulder.z -= 0.001;
   leftHip.z -= 0.001;
@@ -208,22 +261,22 @@ export function computeLimbs(rig: RigState, config: Config, sh: ShoulderHip): Li
 }
 
 export function getBodyPath(rig: RigState, config: Config): string {
-  const n0 = getBezierNormal(0, rig.head, rig.torsoCurve, rig.pelvis);
-  const n1 = getBezierNormal(0.5, rig.head, rig.torsoCurve, rig.pelvis);
-  const n2 = getBezierNormal(1, rig.head, rig.torsoCurve, rig.pelvis);
+  const n0 = getBezierNormal(0, rig.chest, rig.belly, rig.hip);
+  const n1 = getBezierNormal(0.5, rig.chest, rig.belly, rig.hip);
+  const n2 = getBezierNormal(1, rig.chest, rig.belly, rig.hip);
 
   const w0 = Math.max(1, config.chestWidth / 2);
   const w1 = Math.max(1, config.stomachWidth / 2);
   const w2 = Math.max(1, config.hipWidth / 2);
 
-  const l0 = { x: rig.head.x + n0.x * w0, y: rig.head.y + n0.y * w0 };
-  const r0 = { x: rig.head.x - n0.x * w0, y: rig.head.y - n0.y * w0 };
+  const l0 = { x: rig.chest.x + n0.x * w0, y: rig.chest.y + n0.y * w0 };
+  const r0 = { x: rig.chest.x - n0.x * w0, y: rig.chest.y - n0.y * w0 };
 
-  const leftControl = { x: rig.torsoCurve.x + n1.x * w1, y: rig.torsoCurve.y + n1.y * w1 };
-  const rightControl = { x: rig.torsoCurve.x - n1.x * w1, y: rig.torsoCurve.y - n1.y * w1 };
+  const leftControl = { x: rig.belly.x + n1.x * w1, y: rig.belly.y + n1.y * w1 };
+  const rightControl = { x: rig.belly.x - n1.x * w1, y: rig.belly.y - n1.y * w1 };
 
-  const l2 = { x: rig.pelvis.x + n2.x * w2, y: rig.pelvis.y + n2.y * w2 };
-  const r2 = { x: rig.pelvis.x - n2.x * w2, y: rig.pelvis.y - n2.y * w2 };
+  const l2 = { x: rig.hip.x + n2.x * w2, y: rig.hip.y + n2.y * w2 };
+  const r2 = { x: rig.hip.x - n2.x * w2, y: rig.hip.y - n2.y * w2 };
 
   return `
     M ${l0.x} ${l0.y}
@@ -233,6 +286,103 @@ export function getBodyPath(rig: RigState, config: Config): string {
     A ${w0} ${w0} 0 0 0 ${l0.x} ${l0.y}
     Z
   `;
+}
+
+export interface CrossSection {
+  id: 'upperChest' | 'lowerChest' | 'upperHip' | 'lowerHip';
+  center: Point;
+  normal: Point;
+  tangent: Point;
+  radius: number;
+  twistDeg: number;
+  section: 'chest' | 'hip';
+}
+
+export function computeCrossSections(rig: RigState, config: Config): CrossSection[] {
+  const { lowerChest, upperHip } = getInnerTwists(config);
+  const specs: Array<{ id: CrossSection['id']; t: number; twist: number; section: 'chest' | 'hip' }> = [
+    { id: 'upperChest', t: 0, twist: config.chestRotationY, section: 'chest' },
+    { id: 'lowerChest', t: CHEST_BOTTOM_T, twist: lowerChest, section: 'chest' },
+    { id: 'upperHip', t: HIP_TOP_T, twist: upperHip, section: 'hip' },
+    { id: 'lowerHip', t: 1, twist: config.hipRotationY, section: 'hip' },
+  ];
+  return specs.map(({ id, t, twist, section }) => {
+    const center = getBezierPoint(t, rig.chest, rig.belly, rig.hip);
+    const normal = getBezierNormal(t, rig.chest, rig.belly, rig.hip);
+    const d = getBezierDerivative(t, rig.chest, rig.belly, rig.hip);
+    const len = Math.hypot(d.x, d.y) || 1;
+    const tangent = { x: d.x / len, y: d.y / len };
+    const radius = getWidthAt(t, config) / 2;
+    return { id, center, normal, tangent, radius, twistDeg: twist, section };
+  });
+}
+
+export interface SeamPath {
+  id: 'left' | 'right';
+  front: string;
+  back: string;
+}
+
+interface SeamSample { x: number; y: number; z: number; }
+
+function splitSeamByZ(samples: SeamSample[]): { front: string; back: string } {
+  const frontParts: string[] = [];
+  const backParts: string[] = [];
+  let frontBuf: string[] = [];
+  let backBuf: string[] = [];
+  const flushFront = () => { if (frontBuf.length > 1) frontParts.push('M ' + frontBuf.join(' L ')); frontBuf = []; };
+  const flushBack = () => { if (backBuf.length > 1) backParts.push('M ' + backBuf.join(' L ')); backBuf = []; };
+  const fmt = (x: number, y: number) => `${x.toFixed(2)} ${y.toFixed(2)}`;
+
+  for (let i = 0; i < samples.length; i++) {
+    const p = samples[i];
+    const prev = i > 0 ? samples[i - 1] : null;
+    if (prev && (prev.z >= 0) !== (p.z >= 0)) {
+      const k = prev.z / (prev.z - p.z);
+      const cx = lerp(prev.x, p.x, k);
+      const cy = lerp(prev.y, p.y, k);
+      const crossStr = fmt(cx, cy);
+      if (prev.z >= 0) {
+        frontBuf.push(crossStr);
+        flushFront();
+        backBuf.push(crossStr);
+      } else {
+        backBuf.push(crossStr);
+        flushBack();
+        frontBuf.push(crossStr);
+      }
+    }
+    if (p.z >= 0) frontBuf.push(fmt(p.x, p.y));
+    else backBuf.push(fmt(p.x, p.y));
+  }
+  flushFront();
+  flushBack();
+  return { front: frontParts.join(' '), back: backParts.join(' ') };
+}
+
+export function computeTorsoSeams(rig: RigState, config: Config): SeamPath[] {
+  const N = 40;
+  const seams: Array<{ id: 'left' | 'right'; angle: number }> = [
+    { id: 'left', angle: 90 },
+    { id: 'right', angle: -90 },
+  ];
+  return seams.map(({ id, angle }) => {
+    const samples: SeamSample[] = [];
+    for (let i = 0; i <= N; i++) {
+      const t = i / N;
+      const spine = getBezierPoint(t, rig.chest, rig.belly, rig.hip);
+      const normal = getBezierNormal(t, rig.chest, rig.belly, rig.hip);
+      const R = getWidthAt(t, config) / 2;
+      const tw = getTwistAt(t, config);
+      const rad = (angle + tw) * Math.PI / 180;
+      samples.push({
+        x: spine.x + R * Math.sin(rad) * normal.x,
+        y: spine.y + R * Math.sin(rad) * normal.y,
+        z: R * Math.cos(rad),
+      });
+    }
+    return { id, ...splitSeamByZ(samples) };
+  });
 }
 
 export interface LimbTransform {
@@ -249,10 +399,10 @@ export function computeLimbTransform(limb: Limb, rig: RigState, config: Config):
 
   if (isLeg) {
     let direction = 1;
-    if (Math.abs(config.coreRotationY) > 5) {
-      direction = config.coreRotationY > 0 ? 1 : -1;
+    if (Math.abs(config.hipRotationY) > 5) {
+      direction = config.hipRotationY > 0 ? 1 : -1;
     } else {
-      direction = (limb.end.x - rig.pelvis.x) >= 0 ? 1 : -1;
+      direction = (limb.end.x - rig.hip.x) >= 0 ? 1 : -1;
     }
     const manualRot = limb.id === 'leftLeg' ? config.leftFootRotation : config.rightFootRotation;
     transformStr = `translate(${limb.end.x}, ${limb.end.y}) rotate(${manualRot})`;
@@ -260,8 +410,8 @@ export function computeLimbTransform(limb: Limb, rig: RigState, config: Config):
       ? `M 0 0 A ${r} ${r} 0 0 1 ${2 * r} 0 Z`
       : `M 0 0 A ${r} ${r} 0 0 0 ${-2 * r} 0 Z`;
   } else {
-    const dx = limb.end.x - rig.torsoCurve.x;
-    const dy = limb.end.y - rig.torsoCurve.y;
+    const dx = limb.end.x - rig.belly.x;
+    const dy = limb.end.y - rig.belly.y;
     const angle = Math.atan2(dy, dx) * (180 / Math.PI);
     const manualRot = limb.id === 'leftArm' ? config.leftHandRotation : config.rightHandRotation;
     transformStr = `translate(${limb.end.x}, ${limb.end.y}) rotate(${angle + manualRot})`;

@@ -13,6 +13,7 @@
     DEFAULT_CONFIG, DEFAULT_RIG, EXPRESSION_PRESETS,
     loadSaved, getLimbPath, getBodyPath, computeShouldersHips, computeLimbs,
     computeLimbTransform, getHairPath, getPigtailPaths,
+    computeCrossSections, computeTorsoSeams,
     type Config, type RigState, type Point
   } from './lib/rig';
 
@@ -81,6 +82,8 @@
   const backLimbs = $derived(limbs.filter(l => l.z < 0).sort((a, b) => a.z - b.z));
   const frontLimbs = $derived(limbs.filter(l => l.z >= 0).sort((a, b) => a.z - b.z));
   const bodyPath = $derived(getBodyPath(rig, config));
+  const crossSections = $derived(computeCrossSections(rig, config));
+  const torsoSeams = $derived(computeTorsoSeams(rig, config));
 
   const faceRotY = $derived((config.headRotationY * Math.PI) / 180);
   const faceRotX = $derived((config.headRotationX * Math.PI) / 180);
@@ -239,6 +242,15 @@
             bowing={config.bowing}
           />
 
+          {#each torsoSeams as seam (seam.id)}
+            {#if seam.back}
+              <path d={seam.back} fill="none" stroke="currentColor" stroke-width={config.outlineThickness * 0.45} stroke-dasharray="5 3" stroke-linecap="round" opacity="0.35" />
+            {/if}
+            {#if seam.front}
+              <path d={seam.front} fill="none" stroke="currentColor" stroke-width={config.outlineThickness * 0.6} stroke-linecap="round" opacity="0.75" />
+            {/if}
+          {/each}
+
           {#each frontLimbs as limb (limb.id)}
             {@const lt = computeLimbTransform(limb, rig, config)}
             <g stroke="currentColor" stroke-width={config.outlineThickness} stroke-linecap="round" stroke-linejoin="round">
@@ -350,8 +362,32 @@
               <Handle id="head" pt={rig.head} label="Head Center" color="#ef4444" shape="target" dragging={draggingNode === 'head'} onPointerDown={handlePointerDown} />
             {/if}
             {#if !config.hiddenControls.core}
-              <Handle id="pelvis" pt={rig.pelvis} label="Pelvis" color="#ef4444" shape="target" dragging={draggingNode === 'pelvis'} onPointerDown={handlePointerDown} />
-              <Handle id="torsoCurve" pt={rig.torsoCurve} label="Torso Curve" color="#22c55e" shape="diamond" dragging={draggingNode === 'torsoCurve'} onPointerDown={handlePointerDown} />
+              <Handle id="chest" pt={rig.chest} label="Chest" color="#ef4444" shape="target" dragging={draggingNode === 'chest'} onPointerDown={handlePointerDown} />
+              <Handle id="hip" pt={rig.hip} label="Hip" color="#ef4444" shape="target" dragging={draggingNode === 'hip'} onPointerDown={handlePointerDown} />
+              <Handle id="belly" pt={rig.belly} label="Belly" color="#22c55e" shape="diamond" dragging={draggingNode === 'belly'} onPointerDown={handlePointerDown} />
+
+              {#each crossSections as cs (cs.id)}
+                {@const angleDeg = Math.atan2(cs.normal.y, cs.normal.x) * 180 / Math.PI}
+                {@const twistRad = cs.twistDeg * Math.PI / 180}
+                {@const sinT = Math.sin(twistRad)}
+                {@const cosT = Math.cos(twistRad)}
+                {@const fwdLen = cs.radius * 1.4}
+                {@const fwdX = cs.normal.x * sinT * fwdLen}
+                {@const fwdY = cs.normal.y * sinT * fwdLen}
+                {@const ringColor = cs.section === 'chest' ? '#22c55e' : '#0ea5e9'}
+                <g opacity="0.85" pointer-events="none">
+                  <ellipse
+                    cx={cs.center.x} cy={cs.center.y}
+                    rx={cs.radius} ry={cs.radius * 0.22}
+                    transform={`rotate(${angleDeg} ${cs.center.x} ${cs.center.y})`}
+                    fill="none" stroke={ringColor} stroke-width="1.5" stroke-dasharray="3 2"
+                  />
+                  <line x1={cs.center.x} y1={cs.center.y} x2={cs.center.x + fwdX} y2={cs.center.y + fwdY}
+                        stroke="#f59e0b" stroke-width="2" />
+                  <circle cx={cs.center.x + fwdX} cy={cs.center.y + fwdY} r="3.5"
+                          fill={cosT >= 0 ? '#f59e0b' : 'none'} stroke="#f59e0b" stroke-width="1.5" />
+                </g>
+              {/each}
             {/if}
             {#if !config.hiddenControls.arm}
               <Handle id="leftElbow" pt={rig.leftElbow} label="Left Elbow" color="#a855f7" shape="circle" dragging={draggingNode === 'leftElbow'} onPointerDown={handlePointerDown} />
@@ -377,9 +413,9 @@
 
             <g stroke="#ffffff" stroke-width="0.5" stroke-dasharray="2 3" opacity="0.3">
               {#if !config.hiddenControls.core}
-                <line x1={rig.head.x} y1={rig.head.y} x2={rig.torsoCurve.x} y2={rig.torsoCurve.y} />
-                <line x1={rig.torsoCurve.x} y1={rig.torsoCurve.y} x2={rig.pelvis.x} y2={rig.pelvis.y} />
-                <path d={`M ${rig.head.x} ${rig.head.y} Q ${rig.torsoCurve.x} ${rig.torsoCurve.y} ${rig.pelvis.x} ${rig.pelvis.y}`} fill="none" stroke-dasharray="4 4" stroke-width="1" opacity="0.5" />
+                <line x1={rig.chest.x} y1={rig.chest.y} x2={rig.belly.x} y2={rig.belly.y} />
+                <line x1={rig.belly.x} y1={rig.belly.y} x2={rig.hip.x} y2={rig.hip.y} />
+                <path d={`M ${rig.chest.x} ${rig.chest.y} Q ${rig.belly.x} ${rig.belly.y} ${rig.hip.x} ${rig.hip.y}`} fill="none" stroke-dasharray="4 4" stroke-width="1" opacity="0.5" />
               {/if}
               {#if !config.hiddenControls.arm}
                 <line x1={shouldersHips.leftShoulder.point.x} y1={shouldersHips.leftShoulder.point.y} x2={rig.leftElbow.x} y2={rig.leftElbow.y} />
@@ -449,8 +485,9 @@
           {#if activeTab === 'rig'}
             <ControlSection title="Pivot Points (X, Y)">
               <PointControl label="Head" value={rig.head} onChange={(pt) => setRigPoint('head', pt)} />
-              <PointControl label="Torso Curve" value={rig.torsoCurve} onChange={(pt) => setRigPoint('torsoCurve', pt)} />
-              <PointControl label="Pelvis" value={rig.pelvis} onChange={(pt) => setRigPoint('pelvis', pt)} />
+              <PointControl label="Chest" value={rig.chest} onChange={(pt) => setRigPoint('chest', pt)} />
+              <PointControl label="Belly" value={rig.belly} onChange={(pt) => setRigPoint('belly', pt)} />
+              <PointControl label="Hip" value={rig.hip} onChange={(pt) => setRigPoint('hip', pt)} />
 
               <div class="h-px bg-slate-800 my-2"></div>
 
@@ -472,7 +509,9 @@
             </ControlSection>
 
             <ControlSection title="3D Rotations">
-              <ScalarSlider label="Core Rotation (Y)" value={config.coreRotationY} min={-90} max={90} onChange={(v) => updateConfig('coreRotationY', v)} />
+              <ScalarSlider label="Chest Twist (Y)" value={config.chestRotationY} min={-90} max={90} onChange={(v) => updateConfig('chestRotationY', v)} />
+              <ScalarSlider label="Hip Twist (Y)" value={config.hipRotationY} min={-90} max={90} onChange={(v) => updateConfig('hipRotationY', v)} />
+              <ScalarSlider label="Twist Falloff" value={config.twistFalloff} min={0} max={1} step={0.05} onChange={(v) => updateConfig('twistFalloff', v)} />
               <ScalarSlider label="Face Yaw (Y)" value={config.headRotationY} min={-90} max={90} onChange={(v) => updateConfig('headRotationY', v)} />
               <ScalarSlider label="Face Pitch (X)" value={config.headRotationX} min={-90} max={90} onChange={(v) => updateConfig('headRotationX', v)} />
               <CyclicSlider label="Head Roll (Z)" value={config.headRotationZ} min={-180} max={180} onChange={(v) => updateConfig('headRotationZ', v)} />
