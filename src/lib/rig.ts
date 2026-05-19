@@ -99,6 +99,152 @@ export const EXPRESSION_PRESETS: Record<string, Partial<Config>> = {
   crying: { eyeSize: 4, mouthScale: -1.5, mouthOffset: 18, eyebrowOffset: -10, eyebrowRotation: 15, eyebrowThickness: 2, eyelidOpenness: 10, eyelidCurve: 0.5, mouthWidth: 16, showEyelidUpper: true, showEyelidLower: true }
 };
 
+export type PoseRot = Pick<Config,
+  'chestTwist' | 'hipTwist' | 'twistFalloff' |
+  'headRotationX' | 'headRotationY' | 'headRotationZ' |
+  'leftHandRotation' | 'rightHandRotation' | 'leftFootRotation' | 'rightFootRotation'
+>;
+
+export interface PosePreset {
+  rig: RigState;
+  config: PoseRot;
+}
+
+export const POSE_PRESET_KEYS: ReadonlyArray<keyof PoseRot> = [
+  'chestTwist', 'hipTwist', 'twistFalloff',
+  'headRotationX', 'headRotationY', 'headRotationZ',
+  'leftHandRotation', 'rightHandRotation', 'leftFootRotation', 'rightFootRotation',
+];
+
+export const POSE_PRESETS: Record<string, PosePreset> = {
+  standing: {
+    rig: {
+      head: { x: 400, y: 200 }, chest: { x: 400, y: 320 }, hip: { x: 400, y: 420 },
+      leftElbow: { x: 320, y: 340 }, leftHand: { x: 280, y: 390 },
+      rightElbow: { x: 480, y: 340 }, rightHand: { x: 520, y: 390 },
+      leftKnee: { x: 350, y: 490 }, leftFoot: { x: 330, y: 570 },
+      rightKnee: { x: 450, y: 490 }, rightFoot: { x: 470, y: 570 },
+    },
+    config: {
+      chestTwist: 0, hipTwist: 0, twistFalloff: 0.5,
+      headRotationX: 0, headRotationY: 0, headRotationZ: 0,
+      leftHandRotation: 0, rightHandRotation: 0, leftFootRotation: 0, rightFootRotation: 0,
+    },
+  },
+  tpose: {
+    rig: {
+      head: { x: 400, y: 200 }, chest: { x: 400, y: 320 }, hip: { x: 400, y: 420 },
+      leftElbow: { x: 300, y: 320 }, leftHand: { x: 200, y: 320 },
+      rightElbow: { x: 500, y: 320 }, rightHand: { x: 600, y: 320 },
+      leftKnee: { x: 380, y: 500 }, leftFoot: { x: 370, y: 590 },
+      rightKnee: { x: 420, y: 500 }, rightFoot: { x: 430, y: 590 },
+    },
+    config: {
+      chestTwist: 0, hipTwist: 0, twistFalloff: 0.5,
+      headRotationX: 0, headRotationY: 0, headRotationZ: 0,
+      leftHandRotation: 0, rightHandRotation: 0, leftFootRotation: -90, rightFootRotation: 90,
+    },
+  },
+  sitting: {
+    rig: {
+      head: { x: 400, y: 220 }, chest: { x: 400, y: 340 }, hip: { x: 400, y: 440 },
+      leftElbow: { x: 340, y: 380 }, leftHand: { x: 340, y: 450 },
+      rightElbow: { x: 460, y: 380 }, rightHand: { x: 460, y: 450 },
+      leftKnee: { x: 320, y: 460 }, leftFoot: { x: 320, y: 580 },
+      rightKnee: { x: 480, y: 460 }, rightFoot: { x: 480, y: 580 },
+    },
+    config: {
+      chestTwist: 0, hipTwist: 0, twistFalloff: 0.5,
+      headRotationX: 0, headRotationY: 0, headRotationZ: 0,
+      leftHandRotation: 0, rightHandRotation: 0, leftFootRotation: 0, rightFootRotation: 0,
+    },
+  },
+  running: {
+    rig: {
+      head: { x: 430, y: 215 }, chest: { x: 415, y: 330 }, hip: { x: 318.82, y: 413.10 },
+      leftElbow: { x: 294.36, y: 289.22 }, leftHand: { x: 203.23, y: 359.04 },
+      rightElbow: { x: 499.83, y: 278.86 }, rightHand: { x: 555.56, y: 270.61 },
+      leftKnee: { x: 509.22, y: 408.25 }, leftFoot: { x: 426.57, y: 486.37 },
+      rightKnee: { x: 284.03, y: 497.53 }, rightFoot: { x: 92.88, y: 568.45 },
+    },
+    config: {
+      chestTwist: -82, hipTwist: -90, twistFalloff: 0.5,
+      headRotationX: -6, headRotationY: 58, headRotationZ: -21,
+      leftHandRotation: -78, rightHandRotation: 175,
+      leftFootRotation: -174, rightFootRotation: 44,
+    },
+  },
+  waving: {
+    rig: {
+      head: { x: 400, y: 200 }, chest: { x: 400, y: 320 }, hip: { x: 400, y: 420 },
+      leftElbow: { x: 340, y: 240 }, leftHand: { x: 320, y: 150 },
+      rightElbow: { x: 480, y: 340 }, rightHand: { x: 520, y: 390 },
+      leftKnee: { x: 350, y: 490 }, leftFoot: { x: 330, y: 570 },
+      rightKnee: { x: 450, y: 490 }, rightFoot: { x: 470, y: 570 },
+    },
+    config: {
+      chestTwist: 10, hipTwist: 0, twistFalloff: 0.5,
+      headRotationX: -5, headRotationY: 15, headRotationZ: 0,
+      leftHandRotation: -30, rightHandRotation: 0, leftFootRotation: 0, rightFootRotation: 0,
+    },
+  },
+  jumping: {
+    rig: {
+      head: { x: 400, y: 170 }, chest: { x: 400, y: 290 }, hip: { x: 400, y: 390 },
+      leftElbow: { x: 340, y: 220 }, leftHand: { x: 305, y: 130 },
+      rightElbow: { x: 460, y: 220 }, rightHand: { x: 495, y: 130 },
+      leftKnee: { x: 345, y: 405 }, leftFoot: { x: 380, y: 480 },
+      rightKnee: { x: 455, y: 405 }, rightFoot: { x: 420, y: 480 },
+    },
+    config: {
+      chestTwist: 0, hipTwist: 0, twistFalloff: 0.5,
+      headRotationX: 10, headRotationY: 0, headRotationZ: 0,
+      leftHandRotation: 0, rightHandRotation: 0, leftFootRotation: 90, rightFootRotation: -90,
+    },
+  },
+  thinker: {
+    rig: {
+      head: { x: 405, y: 210 }, chest: { x: 400, y: 330 }, hip: { x: 400, y: 430 },
+      leftElbow: { x: 360, y: 360 }, leftHand: { x: 340, y: 420 },
+      rightElbow: { x: 430, y: 280 }, rightHand: { x: 405, y: 230 },
+      leftKnee: { x: 360, y: 500 }, leftFoot: { x: 340, y: 580 },
+      rightKnee: { x: 440, y: 500 }, rightFoot: { x: 460, y: 580 },
+    },
+    config: {
+      chestTwist: -10, hipTwist: 0, twistFalloff: 0.5,
+      headRotationX: -15, headRotationY: -10, headRotationZ: -8,
+      leftHandRotation: 30, rightHandRotation: -60, leftFootRotation: 0, rightFootRotation: 0,
+    },
+  },
+  cheer: {
+    rig: {
+      head: { x: 400, y: 200 }, chest: { x: 400, y: 320 }, hip: { x: 400, y: 420 },
+      leftElbow: { x: 350, y: 250 }, leftHand: { x: 310, y: 160 },
+      rightElbow: { x: 450, y: 250 }, rightHand: { x: 490, y: 160 },
+      leftKnee: { x: 350, y: 490 }, leftFoot: { x: 330, y: 570 },
+      rightKnee: { x: 450, y: 490 }, rightFoot: { x: 470, y: 570 },
+    },
+    config: {
+      chestTwist: 0, hipTwist: 0, twistFalloff: 0.5,
+      headRotationX: 8, headRotationY: 0, headRotationZ: 0,
+      leftHandRotation: 0, rightHandRotation: 0, leftFootRotation: 0, rightFootRotation: 0,
+    },
+  },
+};
+
+type BodyGeom = Pick<Config, 'headRadius' | 'neckWidth' | 'chestWidth' | 'hipWidth' | 'handRadius' | 'footRadius' | 'headSquash'>;
+
+export const BODY_TYPE_PRESETS: Record<string, BodyGeom> = {
+  default:   { headRadius: 80,  neckWidth: 35, chestWidth: 75,  hipWidth: 80,  handRadius: 15, footRadius: 15, headSquash: 0.2 },
+  chubby:    { headRadius: 85,  neckWidth: 50, chestWidth: 105, hipWidth: 115, handRadius: 18, footRadius: 18, headSquash: 0.1 },
+  skinny:    { headRadius: 70,  neckWidth: 22, chestWidth: 45,  hipWidth: 50,  handRadius: 11, footRadius: 12, headSquash: 0.3 },
+  muscular:  { headRadius: 75,  neckWidth: 48, chestWidth: 115, hipWidth: 80,  handRadius: 19, footRadius: 18, headSquash: 0.15 },
+  pear:      { headRadius: 75,  neckWidth: 28, chestWidth: 55,  hipWidth: 105, handRadius: 13, footRadius: 16, headSquash: 0.2 },
+  bigHead:   { headRadius: 130, neckWidth: 30, chestWidth: 65,  hipWidth: 70,  handRadius: 14, footRadius: 14, headSquash: 0.1 },
+  chibi:     { headRadius: 140, neckWidth: 45, chestWidth: 85,  hipWidth: 90,  handRadius: 18, footRadius: 18, headSquash: -0.05 },
+  giant:     { headRadius: 110, neckWidth: 55, chestWidth: 110, hipWidth: 115, handRadius: 22, footRadius: 22, headSquash: 0.2 },
+};
+
 export const DEFAULT_CONFIG: Config = {
   headRadius: 80, neckWidth: 35, chestWidth: 75, hipWidth: 80, handRadius: 15, footRadius: 15,
   outlineThickness: 1, smoothLeftArm: true, smoothRightArm: true, smoothLeftLeg: true, smoothRightLeg: true,

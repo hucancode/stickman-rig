@@ -10,7 +10,7 @@
   import PointControl from './components/PointControl.svelte';
   import ToggleControl from './components/ToggleControl.svelte';
   import {
-    DEFAULT_CONFIG, DEFAULT_RIG, DEFAULT_HIDDEN_CONTROLS, EXPRESSION_PRESETS,
+    DEFAULT_CONFIG, DEFAULT_RIG, DEFAULT_HIDDEN_CONTROLS, EXPRESSION_PRESETS, POSE_PRESETS, BODY_TYPE_PRESETS,
     loadSaved, getLimbPath, getBodyPath, computeShouldersHips, computeLimbs,
     computeLimbTransform,
     computeCrossSections, computeTorsoSeams,
@@ -189,6 +189,16 @@
 
   function applyExpression(name: string) {
     config = { ...config, ...EXPRESSION_PRESETS[name] };
+  }
+
+  function applyPose(name: string) {
+    const preset = POSE_PRESETS[name];
+    rig = { ...preset.rig };
+    config = { ...config, ...preset.config };
+  }
+
+  function applyBodyType(name: string) {
+    config = { ...config, ...BODY_TYPE_PRESETS[name] };
   }
 
   function addAccessory(emoji: string) {
@@ -572,6 +582,17 @@
 
         <div class="flex-1 overflow-y-auto p-4 space-y-6">
           {#if activeTab === 'pose'}
+            <ControlSection title="Pose Presets">
+              <div class="grid grid-cols-2 gap-2">
+                {#each Object.keys(POSE_PRESETS) as preset (preset)}
+                  <button
+                    onclick={() => applyPose(preset)}
+                    class="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 rounded text-sm text-center capitalize transition-colors"
+                  >{preset}</button>
+                {/each}
+              </div>
+            </ControlSection>
+
             <ControlSection title="3D Rotations">
               <ScalarSlider label="Chest Twist" value={config.chestTwist} min={-90} max={90} onChange={(v) => updateConfig('chestTwist', v)} />
               <ScalarSlider label="Hip Twist" value={config.hipTwist} min={-90} max={90} onChange={(v) => updateConfig('hipTwist', v)} />
@@ -590,7 +611,18 @@
           {/if}
 
           {#if activeTab === 'geometry'}
-            <ControlSection title="Geometry">
+            <ControlSection title="Body Type">
+              <div class="grid grid-cols-2 gap-2">
+                {#each Object.keys(BODY_TYPE_PRESETS) as preset (preset)}
+                  <button
+                    onclick={() => applyBodyType(preset)}
+                    class="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 rounded text-sm text-center capitalize transition-colors"
+                  >{preset}</button>
+                {/each}
+              </div>
+            </ControlSection>
+
+            <ControlSection title="Body">
               <div class="text-sm font-medium text-slate-400 mt-2">Smooth Limbs</div>
               <div class="grid grid-cols-2 gap-3 mb-2">
                 <ToggleControl label="Left Arm" checked={config.smoothLeftArm} onChange={(v) => updateConfig('smoothLeftArm', v)} />
