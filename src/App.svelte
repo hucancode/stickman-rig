@@ -18,13 +18,13 @@
     type Config, type RigState, type Point
   } from './lib/rig';
 
-  type Tab = 'rig' | 'geometry' | 'props' | 'render' | 'expressions';
+  type Tab = 'pose' | 'geometry' | 'props' | 'render' | 'expressions';
 
   let config = $state<Config>(loadSaved('stickman_config', DEFAULT_CONFIG));
   let rig = $state<RigState>(loadSaved('stickman_rig', DEFAULT_RIG));
   let autoSave = $state(localStorage.getItem('stickman_autosave') === 'true');
 
-  let activeTab = $state<Tab>('rig');
+  let activeTab = $state<Tab>('pose');
   let zoom = $state(1);
   let showPanel = $state(true);
   let pan = $state({ x: 0, y: 0 });
@@ -210,8 +210,8 @@
   }
 
   const visibilityCats = ['head', 'core', 'arm', 'hand', 'leg', 'feet', 'accessories'];
-  const tabs: Tab[] = ['rig', 'geometry', 'expressions', 'props', 'render'];
-  const emojis = ['🎩', '🧢', '👑', '👓', '🕶️', '⚔️', '🛡️', '🪄', '💖'];
+  const tabs: Tab[] = ['pose', 'geometry', 'expressions', 'props', 'render'];
+  const emojis = ['🎩', '🧢', '👑', '👓', '🕶️', '💖'];
 </script>
 
 <div class="h-screen bg-slate-900 text-slate-100 flex flex-col font-sans selection:bg-blue-500/30 overflow-hidden">
@@ -220,7 +220,7 @@
       <div class="w-8 h-8 rounded-lg bg-blue-500/20 flex items-center justify-center text-blue-400">
         <PersonStanding size={18} />
       </div>
-      <h1 class="font-semibold tracking-tight text-slate-200">Stickman Rig</h1>
+      <h1 class="font-semibold tracking-tight text-slate-200">Stickman</h1>
     </div>
     <div class="flex items-center gap-4">
       <label class="flex items-center gap-2 text-sm text-slate-400 cursor-pointer select-none">
@@ -569,31 +569,7 @@
         </div>
 
         <div class="flex-1 overflow-y-auto p-4 space-y-6">
-          {#if activeTab === 'rig'}
-            <ControlSection title="Pivot Points (X, Y)">
-              <PointControl label="Head" value={rig.head} onChange={(pt) => setRigPoint('head', pt)} />
-              <PointControl label="Chest" value={rig.chest} onChange={(pt) => setRigPoint('chest', pt)} />
-              <PointControl label="Hip" value={rig.hip} onChange={(pt) => setRigPoint('hip', pt)} />
-
-              <div class="h-px bg-slate-800 my-2"></div>
-
-              <div class="grid grid-cols-2 gap-3">
-                <PointControl label="Left Elbow" value={rig.leftElbow} onChange={(pt) => setRigPoint('leftElbow', pt)} compact />
-                <PointControl label="Right Elbow" value={rig.rightElbow} onChange={(pt) => setRigPoint('rightElbow', pt)} compact />
-                <PointControl label="Left Hand" value={rig.leftHand} onChange={(pt) => setRigPoint('leftHand', pt)} compact />
-                <PointControl label="Right Hand" value={rig.rightHand} onChange={(pt) => setRigPoint('rightHand', pt)} compact />
-              </div>
-
-              <div class="h-px bg-slate-800 my-2"></div>
-
-              <div class="grid grid-cols-2 gap-3">
-                <PointControl label="Left Knee" value={rig.leftKnee} onChange={(pt) => setRigPoint('leftKnee', pt)} compact />
-                <PointControl label="Right Knee" value={rig.rightKnee} onChange={(pt) => setRigPoint('rightKnee', pt)} compact />
-                <PointControl label="Left Foot" value={rig.leftFoot} onChange={(pt) => setRigPoint('leftFoot', pt)} compact />
-                <PointControl label="Right Foot" value={rig.rightFoot} onChange={(pt) => setRigPoint('rightFoot', pt)} compact />
-              </div>
-            </ControlSection>
-
+          {#if activeTab === 'pose'}
             <ControlSection title="3D Rotations">
               <ScalarSlider label="Chest Twist (Y)" value={config.chestRotationY} min={-90} max={90} onChange={(v) => updateConfig('chestRotationY', v)} />
               <ScalarSlider label="Hip Twist (Y)" value={config.hipRotationY} min={-90} max={90} onChange={(v) => updateConfig('hipRotationY', v)} />
@@ -655,7 +631,7 @@
 
             <ControlSection title="Eyebrows">
               <ScalarSlider label="Y Offset" value={config.eyebrowOffset} min={-40} max={10} step={1} onChange={(v) => updateConfig('eyebrowOffset', v)} />
-              <ScalarSlider label="Rotation" value={config.eyebrowRotation} min={-45} max={45} step={1} onChange={(v) => updateConfig('eyebrowRotation', v)} />
+              <ScalarSlider label="Angry/Relax" value={config.eyebrowRotation} min={-45} max={45} step={1} onChange={(v) => updateConfig('eyebrowRotation', v)} />
               <ScalarSlider label="Thickness" value={config.eyebrowThickness} min={0.5} max={10} step={0.5} onChange={(v) => updateConfig('eyebrowThickness', v)} />
             </ControlSection>
 
