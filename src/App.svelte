@@ -10,18 +10,19 @@
   import PointControl from './components/PointControl.svelte';
   import ToggleControl from './components/ToggleControl.svelte';
   import {
-    DEFAULT_CONFIG, DEFAULT_RIG, EXPRESSION_PRESETS,
+    DEFAULT_CONFIG, DEFAULT_RIG, DEFAULT_HIDDEN_CONTROLS, EXPRESSION_PRESETS,
     loadSaved, getLimbPath, getBodyPath, computeShouldersHips, computeLimbs,
     computeLimbTransform,
     computeCrossSections, computeTorsoSeams,
     computeFacePaths, computeHeadBaseRoll, computeHeadGeometry,
-    type Config, type RigState, type Point
+    type Config, type RigState, type Point, type HiddenControls
   } from './lib/rig';
 
   type Tab = 'pose' | 'geometry' | 'props' | 'render' | 'expressions';
 
   let config = $state<Config>(loadSaved('stickman_config', DEFAULT_CONFIG));
   let rig = $state<RigState>(loadSaved('stickman_rig', DEFAULT_RIG));
+  let hiddenControls = $state<HiddenControls>(loadSaved('stickman_hidden_controls', DEFAULT_HIDDEN_CONTROLS));
   let autoSave = $state(localStorage.getItem('stickman_autosave') === 'true');
 
   let activeTab = $state<Tab>('pose');
@@ -36,10 +37,11 @@
   function saveToStorage() {
     localStorage.setItem('stickman_config', JSON.stringify(config));
     localStorage.setItem('stickman_rig', JSON.stringify(rig));
+    localStorage.setItem('stickman_hidden_controls', JSON.stringify(hiddenControls));
   }
 
   $effect(() => {
-    void config; void rig; void autoSave;
+    void config; void rig; void hiddenControls; void autoSave;
     if (autoSave) saveToStorage();
   });
 
@@ -113,7 +115,7 @@
           const proj = (dx * cs.normal.x + dy * cs.normal.y) / fwdLen;
           const clamped = Math.max(-1, Math.min(1, proj));
           const deg = Math.asin(clamped) * 180 / Math.PI;
-          const key = section === 'chest' ? 'chestRotationY' : 'hipRotationY';
+          const key = section === 'chest' ? 'chestTwist' : 'hipTwist';
           config = { ...config, [key]: deg };
         }
       } else {
@@ -182,7 +184,7 @@
   }
 
   function toggleHidden(cat: string) {
-    config = { ...config, hiddenControls: { ...config.hiddenControls, [cat]: !config.hiddenControls[cat] } };
+    hiddenControls = { ...hiddenControls, [cat]: !hiddenControls[cat] };
   }
 
   function applyExpression(name: string) {
@@ -371,7 +373,7 @@
           {/each}
 
           <g id="rig-handles">
-            {#if !config.hiddenControls.head}
+            {#if !hiddenControls.head}
               <Handle id="head" pt={rig.head} label="Head Center" color="#ef4444" shape="target" dragging={draggingNode === 'head'} onPointerDown={handlePointerDown} />
 
               {@const gx = rig.head.x + config.headRadius + 70}
@@ -404,7 +406,7 @@
                 <text x={gx} y={gy - gOuter - 6} text-anchor="middle" font-size="9" fill="#94a3b8" pointer-events="none">head rot</text>
               </g>
             {/if}
-            {#if !config.hiddenControls.core}
+            {#if !hiddenControls.core}
               <Handle id="chest" pt={rig.chest} label="Chest" color="#22c55e" shape="diamond" dragging={draggingNode === 'chest'} onPointerDown={handlePointerDown} />
               <Handle id="hip" pt={rig.hip} label="Hip" color="#ef4444" shape="target" dragging={draggingNode === 'hip'} onPointerDown={handlePointerDown} />
 
@@ -442,11 +444,11 @@
                 </g>
               {/each}
             {/if}
-            {#if !config.hiddenControls.arm}
+            {#if !hiddenControls.arm}
               <Handle id="leftElbow" pt={rig.leftElbow} label="Left Elbow" color="#a855f7" shape="circle" dragging={draggingNode === 'leftElbow'} onPointerDown={handlePointerDown} />
               <Handle id="rightElbow" pt={rig.rightElbow} label="Right Elbow" color="#a855f7" shape="circle" dragging={draggingNode === 'rightElbow'} onPointerDown={handlePointerDown} />
             {/if}
-            {#if !config.hiddenControls.hand}
+            {#if !hiddenControls.hand}
               <Handle id="leftHand" pt={rig.leftHand} label="Left Hand" color="#0ea5e9" shape="square" dragging={draggingNode === 'leftHand'} onPointerDown={handlePointerDown} />
               <Handle id="rightHand" pt={rig.rightHand} label="Right Hand" color="#0ea5e9" shape="square" dragging={draggingNode === 'rightHand'} onPointerDown={handlePointerDown} />
 
@@ -467,11 +469,11 @@
                 </g>
               {/each}
             {/if}
-            {#if !config.hiddenControls.leg}
+            {#if !hiddenControls.leg}
               <Handle id="leftKnee" pt={rig.leftKnee} label="Left Knee" color="#a855f7" shape="circle" dragging={draggingNode === 'leftKnee'} onPointerDown={handlePointerDown} />
               <Handle id="rightKnee" pt={rig.rightKnee} label="Right Knee" color="#a855f7" shape="circle" dragging={draggingNode === 'rightKnee'} onPointerDown={handlePointerDown} />
             {/if}
-            {#if !config.hiddenControls.feet}
+            {#if !hiddenControls.feet}
               <Handle id="leftFoot" pt={rig.leftFoot} label="Left Foot" color="#0ea5e9" shape="square" dragging={draggingNode === 'leftFoot'} onPointerDown={handlePointerDown} />
               <Handle id="rightFoot" pt={rig.rightFoot} label="Right Foot" color="#0ea5e9" shape="square" dragging={draggingNode === 'rightFoot'} onPointerDown={handlePointerDown} />
 
@@ -492,31 +494,31 @@
                 </g>
               {/each}
             {/if}
-            {#if !config.hiddenControls.accessories}
+            {#if !hiddenControls.accessories}
               {#each config.accessories as acc (acc.id)}
                 <Handle id={`acc_${acc.id}`} pt={acc.position} label={`Prop: ${acc.emoji}`} color="#f59e0b" shape="diamond" dragging={draggingNode === `acc_${acc.id}`} onPointerDown={handlePointerDown} />
               {/each}
             {/if}
 
             <g stroke="#ffffff" stroke-width="0.5" stroke-dasharray="2 3" opacity="0.3">
-              {#if !config.hiddenControls.core}
+              {#if !hiddenControls.core}
                 <line x1={rig.head.x} y1={rig.head.y} x2={rig.chest.x} y2={rig.chest.y} />
                 <line x1={rig.chest.x} y1={rig.chest.y} x2={rig.hip.x} y2={rig.hip.y} />
                 <path d={`M ${rig.head.x} ${rig.head.y} Q ${rig.chest.x} ${rig.chest.y} ${rig.hip.x} ${rig.hip.y}`} fill="none" stroke-dasharray="4 4" stroke-width="1" opacity="0.5" />
               {/if}
-              {#if !config.hiddenControls.arm}
+              {#if !hiddenControls.arm}
                 <line x1={shouldersHips.leftShoulder.point.x} y1={shouldersHips.leftShoulder.point.y} x2={rig.leftElbow.x} y2={rig.leftElbow.y} />
                 <line x1={shouldersHips.rightShoulder.point.x} y1={shouldersHips.rightShoulder.point.y} x2={rig.rightElbow.x} y2={rig.rightElbow.y} />
               {/if}
-              {#if !config.hiddenControls.hand}
+              {#if !hiddenControls.hand}
                 <line x1={rig.leftElbow.x} y1={rig.leftElbow.y} x2={rig.leftHand.x} y2={rig.leftHand.y} />
                 <line x1={rig.rightElbow.x} y1={rig.rightElbow.y} x2={rig.rightHand.x} y2={rig.rightHand.y} />
               {/if}
-              {#if !config.hiddenControls.leg}
+              {#if !hiddenControls.leg}
                 <line x1={shouldersHips.leftHip.point.x} y1={shouldersHips.leftHip.point.y} x2={rig.leftKnee.x} y2={rig.leftKnee.y} />
                 <line x1={shouldersHips.rightHip.point.x} y1={shouldersHips.rightHip.point.y} x2={rig.rightKnee.x} y2={rig.rightKnee.y} />
               {/if}
-              {#if !config.hiddenControls.feet}
+              {#if !hiddenControls.feet}
                 <line x1={rig.leftKnee.x} y1={rig.leftKnee.y} x2={rig.leftFoot.x} y2={rig.leftFoot.y} />
                 <line x1={rig.rightKnee.x} y1={rig.rightKnee.y} x2={rig.rightFoot.x} y2={rig.rightFoot.y} />
               {/if}
@@ -540,7 +542,7 @@
 
       <div data-no-pan class="absolute top-6 left-6 flex flex-wrap gap-2">
         {#each visibilityCats as cat (cat)}
-          {@const hidden = config.hiddenControls[cat]}
+          {@const hidden = hiddenControls[cat]}
           <button
             onclick={() => toggleHidden(cat)}
             class="px-2.5 py-1 rounded text-xs font-medium transition-colors shadow backdrop-blur-sm {hidden ? 'bg-slate-800/70 text-slate-500' : 'bg-slate-800/90 text-slate-200'}"
@@ -571,8 +573,8 @@
         <div class="flex-1 overflow-y-auto p-4 space-y-6">
           {#if activeTab === 'pose'}
             <ControlSection title="3D Rotations">
-              <ScalarSlider label="Chest Twist (Y)" value={config.chestRotationY} min={-90} max={90} onChange={(v) => updateConfig('chestRotationY', v)} />
-              <ScalarSlider label="Hip Twist (Y)" value={config.hipRotationY} min={-90} max={90} onChange={(v) => updateConfig('hipRotationY', v)} />
+              <ScalarSlider label="Chest Twist" value={config.chestTwist} min={-90} max={90} onChange={(v) => updateConfig('chestTwist', v)} />
+              <ScalarSlider label="Hip Twist" value={config.hipTwist} min={-90} max={90} onChange={(v) => updateConfig('hipTwist', v)} />
               <ScalarSlider label="Twist Falloff" value={config.twistFalloff} min={0} max={1} step={0.05} onChange={(v) => updateConfig('twistFalloff', v)} />
               <ScalarSlider label="Face Yaw (Y)" value={config.headRotationY} min={-90} max={90} onChange={(v) => updateConfig('headRotationY', v)} />
               <ScalarSlider label="Face Pitch (X)" value={config.headRotationX} min={-90} max={90} onChange={(v) => updateConfig('headRotationX', v)} />
@@ -640,10 +642,8 @@
                 <ToggleControl label="Upper" checked={config.showEyelidUpper} onChange={(v) => updateConfig('showEyelidUpper', v)} />
                 <ToggleControl label="Lower" checked={config.showEyelidLower} onChange={(v) => updateConfig('showEyelidLower', v)} />
               </div>
-              <ScalarSlider label="Upper Y Offset" value={config.eyelidUpperOffset} min={-20} max={20} step={1} onChange={(v) => updateConfig('eyelidUpperOffset', v)} />
-              <ScalarSlider label="Upper Curve" value={config.eyelidUpperCurvature} min={-10} max={10} step={0.5} onChange={(v) => updateConfig('eyelidUpperCurvature', v)} />
-              <ScalarSlider label="Lower Y Offset" value={config.eyelidLowerOffset} min={-10} max={20} step={1} onChange={(v) => updateConfig('eyelidLowerOffset', v)} />
-              <ScalarSlider label="Lower Curve" value={config.eyelidLowerCurvature} min={-10} max={10} step={0.5} onChange={(v) => updateConfig('eyelidLowerCurvature', v)} />
+              <ScalarSlider label="Openness" value={config.eyelidOpenness} min={0} max={20} step={0.5} onChange={(v) => updateConfig('eyelidOpenness', v)} />
+              <ScalarSlider label="Curve" value={config.eyelidCurve} min={-10} max={10} step={0.5} onChange={(v) => updateConfig('eyelidCurve', v)} />
             </ControlSection>
           {/if}
 

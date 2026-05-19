@@ -32,18 +32,16 @@ export interface Config {
   eyebrowOffset: number;
   eyebrowRotation: number;
   eyebrowThickness: number;
-  eyelidUpperOffset: number;
-  eyelidLowerOffset: number;
-  eyelidUpperCurvature: number;
-  eyelidLowerCurvature: number;
+  eyelidOpenness: number;
+  eyelidCurve: number;
   showEyelidUpper: boolean;
   showEyelidLower: boolean;
   headSquash: number;
   headRotationY: number;
   headRotationX: number;
   headRotationZ: number;
-  chestRotationY: number;
-  hipRotationY: number;
+  chestTwist: number;
+  hipTwist: number;
   twistFalloff: number;
   roughness: number;
   leftHandRotation: number;
@@ -51,8 +49,9 @@ export interface Config {
   leftFootRotation: number;
   rightFootRotation: number;
   accessories: Accessory[];
-  hiddenControls: Record<string, boolean>;
 }
+
+export type HiddenControls = Record<string, boolean>;
 
 export interface RigState {
   head: Point;
@@ -78,26 +77,26 @@ export interface Limb {
 }
 
 export const EXPRESSION_PRESETS: Record<string, Partial<Config>> = {
-  neutral: { eyeSize: 4, mouthScale: 0.5, mouthOffset: 15, eyebrowOffset: -10, eyebrowRotation: 0, eyebrowThickness: 2, eyelidUpperOffset: -5, eyelidLowerOffset: 5, eyelidUpperCurvature: 0, eyelidLowerCurvature: 0, mouthWidth: 12, showEyelidUpper: true, showEyelidLower: false },
-  happy: { eyeSize: 4.5, mouthScale: 1.5, mouthOffset: 14, eyebrowOffset: -12, eyebrowRotation: -10, eyebrowThickness: 2, eyelidUpperOffset: -5, eyelidLowerOffset: 4, eyelidUpperCurvature: -2, eyelidLowerCurvature: -1, mouthWidth: 16, showEyelidUpper: true, showEyelidLower: true },
-  sad: { eyeSize: 3.5, mouthScale: -1.2, mouthOffset: 18, eyebrowOffset: -9, eyebrowRotation: 15, eyebrowThickness: 2, eyelidUpperOffset: -4, eyelidLowerOffset: 5, eyelidUpperCurvature: 2, eyelidLowerCurvature: 0, mouthWidth: 10, showEyelidUpper: true, showEyelidLower: false },
-  angry: { eyeSize: 3, mouthScale: -0.5, mouthOffset: 16, eyebrowOffset: -6, eyebrowRotation: -25, eyebrowThickness: 3, eyelidUpperOffset: -2, eyelidLowerOffset: 5, eyelidUpperCurvature: -1, eyelidLowerCurvature: 0, mouthWidth: 14, showEyelidUpper: true, showEyelidLower: true },
-  surprised: { eyeSize: 6, mouthScale: 1.8, mouthOffset: 18, eyebrowOffset: -15, eyebrowRotation: 5, eyebrowThickness: 2, eyelidUpperOffset: -7, eyelidLowerOffset: 7, eyelidUpperCurvature: -3, eyelidLowerCurvature: 3, mouthWidth: 8, showEyelidUpper: false, showEyelidLower: false },
-  confused: { eyeSize: 4, mouthScale: -0.2, mouthOffset: 16, eyebrowOffset: -10, eyebrowRotation: -10, eyebrowThickness: 2, eyelidUpperOffset: -4, eyelidLowerOffset: 5, eyelidUpperCurvature: 0, eyelidLowerCurvature: 0, mouthWidth: 10, showEyelidUpper: true, showEyelidLower: false },
-  excited: { eyeSize: 5, mouthScale: 2, mouthOffset: 13, eyebrowOffset: -13, eyebrowRotation: -5, eyebrowThickness: 2.5, eyelidUpperOffset: -6, eyelidLowerOffset: 6, eyelidUpperCurvature: -2, eyelidLowerCurvature: 1, mouthWidth: 18, showEyelidUpper: true, showEyelidLower: true },
-  scared: { eyeSize: 5, mouthScale: -1, mouthOffset: 17, eyebrowOffset: -14, eyebrowRotation: 10, eyebrowThickness: 1.5, eyelidUpperOffset: -6, eyelidLowerOffset: 6, eyelidUpperCurvature: 0, eyelidLowerCurvature: 0, mouthWidth: 14, showEyelidUpper: false, showEyelidLower: false },
-  disgusted: { eyeSize: 3, mouthScale: -0.8, mouthOffset: 15, eyebrowOffset: -7, eyebrowRotation: 20, eyebrowThickness: 2.5, eyelidUpperOffset: -2, eyelidLowerOffset: 3, eyelidUpperCurvature: 2, eyelidLowerCurvature: -1, mouthWidth: 10, showEyelidUpper: true, showEyelidLower: true },
-  tired: { eyeSize: 3, mouthScale: -0.2, mouthOffset: 17, eyebrowOffset: -8, eyebrowRotation: 0, eyebrowThickness: 2, eyelidUpperOffset: -1, eyelidLowerOffset: 3, eyelidUpperCurvature: 2, eyelidLowerCurvature: 1, mouthWidth: 12, showEyelidUpper: true, showEyelidLower: true },
-  relaxed: { eyeSize: 3.5, mouthScale: 0.8, mouthOffset: 16, eyebrowOffset: -9, eyebrowRotation: 0, eyebrowThickness: 2, eyelidUpperOffset: -2, eyelidLowerOffset: 4, eyelidUpperCurvature: 1, eyelidLowerCurvature: -1, mouthWidth: 14, showEyelidUpper: true, showEyelidLower: false },
-  sly: { eyeSize: 3.5, mouthScale: 0.8, mouthOffset: 15, eyebrowOffset: -8, eyebrowRotation: -15, eyebrowThickness: 2.5, eyelidUpperOffset: -2, eyelidLowerOffset: 4, eyelidUpperCurvature: -1, eyelidLowerCurvature: -1, mouthWidth: 15, showEyelidUpper: true, showEyelidLower: true },
-  suspicious: { eyeSize: 2.5, mouthScale: -0.2, mouthOffset: 16, eyebrowOffset: -7, eyebrowRotation: 5, eyebrowThickness: 2, eyelidUpperOffset: -1, eyelidLowerOffset: 3, eyelidUpperCurvature: 1, eyelidLowerCurvature: 0, mouthWidth: 12, showEyelidUpper: true, showEyelidLower: true },
-  determined: { eyeSize: 4, mouthScale: 0.1, mouthOffset: 15, eyebrowOffset: -7, eyebrowRotation: -20, eyebrowThickness: 3, eyelidUpperOffset: -3, eyelidLowerOffset: 5, eyelidUpperCurvature: 0, eyelidLowerCurvature: 0, mouthWidth: 14, showEyelidUpper: true, showEyelidLower: false },
-  worried: { eyeSize: 4.5, mouthScale: -0.8, mouthOffset: 17, eyebrowOffset: -12, eyebrowRotation: 20, eyebrowThickness: 2, eyelidUpperOffset: -5, eyelidLowerOffset: 5, eyelidUpperCurvature: 1, eyelidLowerCurvature: 0, mouthWidth: 12, showEyelidUpper: true, showEyelidLower: false },
-  dizzy: { eyeSize: 3, mouthScale: 0.5, mouthOffset: 17, eyebrowOffset: -10, eyebrowRotation: 5, eyebrowThickness: 2, eyelidUpperOffset: -3, eyelidLowerOffset: 4, eyelidUpperCurvature: 0, eyelidLowerCurvature: 0, mouthWidth: 12, showEyelidUpper: false, showEyelidLower: true },
-  cheeky: { eyeSize: 4, mouthScale: 1.2, mouthOffset: 14, eyebrowOffset: -11, eyebrowRotation: -5, eyebrowThickness: 2, eyelidUpperOffset: -4, eyelidLowerOffset: 5, eyelidUpperCurvature: -1, eyelidLowerCurvature: 0, mouthWidth: 14, showEyelidUpper: true, showEyelidLower: true },
-  sleepy: { eyeSize: 2, mouthScale: 0.2, mouthOffset: 17, eyebrowOffset: -8, eyebrowRotation: 0, eyebrowThickness: 2, eyelidUpperOffset: 0, eyelidLowerOffset: 2, eyelidUpperCurvature: 2, eyelidLowerCurvature: 1, mouthWidth: 10, showEyelidUpper: true, showEyelidLower: true },
-  focused: { eyeSize: 3.5, mouthScale: 0, mouthOffset: 15, eyebrowOffset: -8, eyebrowRotation: -10, eyebrowThickness: 2.5, eyelidUpperOffset: -2, eyelidLowerOffset: 4, eyelidUpperCurvature: 0, eyelidLowerCurvature: 0, mouthWidth: 10, showEyelidUpper: true, showEyelidLower: false },
-  crying: { eyeSize: 4, mouthScale: -1.5, mouthOffset: 18, eyebrowOffset: -10, eyebrowRotation: 15, eyebrowThickness: 2, eyelidUpperOffset: -4, eyelidLowerOffset: 6, eyelidUpperCurvature: 1, eyelidLowerCurvature: 0, mouthWidth: 16, showEyelidUpper: true, showEyelidLower: true }
+  neutral: { eyeSize: 4, mouthScale: 0.5, mouthOffset: 15, eyebrowOffset: -10, eyebrowRotation: 0, eyebrowThickness: 2, eyelidOpenness: 10, eyelidCurve: 0, mouthWidth: 12, showEyelidUpper: true, showEyelidLower: false },
+  happy: { eyeSize: 4.5, mouthScale: 1.5, mouthOffset: 14, eyebrowOffset: -12, eyebrowRotation: -10, eyebrowThickness: 2, eyelidOpenness: 9, eyelidCurve: -1.5, mouthWidth: 16, showEyelidUpper: true, showEyelidLower: true },
+  sad: { eyeSize: 3.5, mouthScale: -1.2, mouthOffset: 18, eyebrowOffset: -9, eyebrowRotation: 15, eyebrowThickness: 2, eyelidOpenness: 9, eyelidCurve: 1, mouthWidth: 10, showEyelidUpper: true, showEyelidLower: false },
+  angry: { eyeSize: 3, mouthScale: -0.5, mouthOffset: 16, eyebrowOffset: -6, eyebrowRotation: -25, eyebrowThickness: 3, eyelidOpenness: 7, eyelidCurve: -0.5, mouthWidth: 14, showEyelidUpper: true, showEyelidLower: true },
+  surprised: { eyeSize: 6, mouthScale: 1.8, mouthOffset: 18, eyebrowOffset: -15, eyebrowRotation: 5, eyebrowThickness: 2, eyelidOpenness: 14, eyelidCurve: 0, mouthWidth: 8, showEyelidUpper: false, showEyelidLower: false },
+  confused: { eyeSize: 4, mouthScale: -0.2, mouthOffset: 16, eyebrowOffset: -10, eyebrowRotation: -10, eyebrowThickness: 2, eyelidOpenness: 9, eyelidCurve: 0, mouthWidth: 10, showEyelidUpper: true, showEyelidLower: false },
+  excited: { eyeSize: 5, mouthScale: 2, mouthOffset: 13, eyebrowOffset: -13, eyebrowRotation: -5, eyebrowThickness: 2.5, eyelidOpenness: 12, eyelidCurve: -0.5, mouthWidth: 18, showEyelidUpper: true, showEyelidLower: true },
+  scared: { eyeSize: 5, mouthScale: -1, mouthOffset: 17, eyebrowOffset: -14, eyebrowRotation: 10, eyebrowThickness: 1.5, eyelidOpenness: 12, eyelidCurve: 0, mouthWidth: 14, showEyelidUpper: false, showEyelidLower: false },
+  disgusted: { eyeSize: 3, mouthScale: -0.8, mouthOffset: 15, eyebrowOffset: -7, eyebrowRotation: 20, eyebrowThickness: 2.5, eyelidOpenness: 5, eyelidCurve: 0.5, mouthWidth: 10, showEyelidUpper: true, showEyelidLower: true },
+  tired: { eyeSize: 3, mouthScale: -0.2, mouthOffset: 17, eyebrowOffset: -8, eyebrowRotation: 0, eyebrowThickness: 2, eyelidOpenness: 4, eyelidCurve: 1.5, mouthWidth: 12, showEyelidUpper: true, showEyelidLower: true },
+  relaxed: { eyeSize: 3.5, mouthScale: 0.8, mouthOffset: 16, eyebrowOffset: -9, eyebrowRotation: 0, eyebrowThickness: 2, eyelidOpenness: 6, eyelidCurve: 0, mouthWidth: 14, showEyelidUpper: true, showEyelidLower: false },
+  sly: { eyeSize: 3.5, mouthScale: 0.8, mouthOffset: 15, eyebrowOffset: -8, eyebrowRotation: -15, eyebrowThickness: 2.5, eyelidOpenness: 6, eyelidCurve: -1, mouthWidth: 15, showEyelidUpper: true, showEyelidLower: true },
+  suspicious: { eyeSize: 2.5, mouthScale: -0.2, mouthOffset: 16, eyebrowOffset: -7, eyebrowRotation: 5, eyebrowThickness: 2, eyelidOpenness: 4, eyelidCurve: 0.5, mouthWidth: 12, showEyelidUpper: true, showEyelidLower: true },
+  determined: { eyeSize: 4, mouthScale: 0.1, mouthOffset: 15, eyebrowOffset: -7, eyebrowRotation: -20, eyebrowThickness: 3, eyelidOpenness: 8, eyelidCurve: 0, mouthWidth: 14, showEyelidUpper: true, showEyelidLower: false },
+  worried: { eyeSize: 4.5, mouthScale: -0.8, mouthOffset: 17, eyebrowOffset: -12, eyebrowRotation: 20, eyebrowThickness: 2, eyelidOpenness: 10, eyelidCurve: 0.5, mouthWidth: 12, showEyelidUpper: true, showEyelidLower: false },
+  dizzy: { eyeSize: 3, mouthScale: 0.5, mouthOffset: 17, eyebrowOffset: -10, eyebrowRotation: 5, eyebrowThickness: 2, eyelidOpenness: 7, eyelidCurve: 0, mouthWidth: 12, showEyelidUpper: false, showEyelidLower: true },
+  cheeky: { eyeSize: 4, mouthScale: 1.2, mouthOffset: 14, eyebrowOffset: -11, eyebrowRotation: -5, eyebrowThickness: 2, eyelidOpenness: 9, eyelidCurve: -0.5, mouthWidth: 14, showEyelidUpper: true, showEyelidLower: true },
+  sleepy: { eyeSize: 2, mouthScale: 0.2, mouthOffset: 17, eyebrowOffset: -8, eyebrowRotation: 0, eyebrowThickness: 2, eyelidOpenness: 2, eyelidCurve: 1.5, mouthWidth: 10, showEyelidUpper: true, showEyelidLower: true },
+  focused: { eyeSize: 3.5, mouthScale: 0, mouthOffset: 15, eyebrowOffset: -8, eyebrowRotation: -10, eyebrowThickness: 2.5, eyelidOpenness: 6, eyelidCurve: 0, mouthWidth: 10, showEyelidUpper: true, showEyelidLower: false },
+  crying: { eyeSize: 4, mouthScale: -1.5, mouthOffset: 18, eyebrowOffset: -10, eyebrowRotation: 15, eyebrowThickness: 2, eyelidOpenness: 10, eyelidCurve: 0.5, mouthWidth: 16, showEyelidUpper: true, showEyelidLower: true }
 };
 
 export const DEFAULT_CONFIG: Config = {
@@ -105,14 +104,17 @@ export const DEFAULT_CONFIG: Config = {
   outlineThickness: 1, smoothLeftArm: true, smoothRightArm: true, smoothLeftLeg: true, smoothRightLeg: true,
   eyeSize: 4, eyeSpacing: 25, mouthScale: 1, mouthOffset: 15, mouthWidth: 12,
   eyebrowOffset: -10, eyebrowRotation: 0, eyebrowThickness: 2,
-  eyelidUpperOffset: -5, eyelidLowerOffset: 5, eyelidUpperCurvature: 0, eyelidLowerCurvature: 0,
+  eyelidOpenness: 10, eyelidCurve: 0,
   showEyelidUpper: false, showEyelidLower: false,
   headSquash: 0.2, headRotationY: 0, headRotationX: 0, headRotationZ: 0,
-  chestRotationY: 0, hipRotationY: 0, twistFalloff: 0.5,
+  chestTwist: 0, hipTwist: 0, twistFalloff: 0.5,
   roughness: 1,
   leftHandRotation: 0, rightHandRotation: 0, leftFootRotation: 0, rightFootRotation: 0,
   accessories: [],
-  hiddenControls: { head: false, core: false, arm: false, hand: false, leg: false, feet: false, accessories: false },
+};
+
+export const DEFAULT_HIDDEN_CONTROLS: HiddenControls = {
+  head: false, core: false, arm: false, hand: false, leg: false, feet: false, accessories: false,
 };
 
 export const DEFAULT_RIG: RigState = {
@@ -176,8 +178,8 @@ function clamp01(x: number): number {
 export function getInnerTwists(config: Config): { lowerChest: number; upperHip: number } {
   const f = clamp01(config.twistFalloff);
   return {
-    lowerChest: config.chestRotationY * (1 - f),
-    upperHip: config.hipRotationY * (1 - f),
+    lowerChest: config.chestTwist * (1 - f),
+    upperHip: config.hipTwist * (1 - f),
   };
 }
 
@@ -185,12 +187,12 @@ export function getTwistAt(t: number, config: Config): number {
   const { lowerChest, upperHip } = getInnerTwists(config);
   if (t <= CHEST_BOTTOM_T) {
     const k = CHEST_BOTTOM_T > 0 ? t / CHEST_BOTTOM_T : 1;
-    return lerp(config.chestRotationY, lowerChest, k);
+    return lerp(config.chestTwist, lowerChest, k);
   }
   if (t >= HIP_TOP_T) {
     const denom = 1 - HIP_TOP_T;
     const k = denom > 0 ? (t - HIP_TOP_T) / denom : 0;
-    return lerp(upperHip, config.hipRotationY, k);
+    return lerp(upperHip, config.hipTwist, k);
   }
   const k = (t - CHEST_BOTTOM_T) / (HIP_TOP_T - CHEST_BOTTOM_T);
   return lerp(lowerChest, upperHip, k);
@@ -234,10 +236,10 @@ export interface ShoulderHip {
 export function computeShouldersHips(rig: RigState, config: Config): ShoulderHip {
   const sWidth = Math.max(1, getWidthAt(SHOULDER_T, config) * 0.95);
   const hWidth = Math.max(1, getWidthAt(HIP_ATTACH_T, config));
-  const rightShoulder = getPointOnTorso(rig, SHOULDER_T, sWidth, -90, config.chestRotationY);
-  const leftShoulder = getPointOnTorso(rig, SHOULDER_T, sWidth, 90, config.chestRotationY);
-  const rightHip = getPointOnTorso(rig, HIP_ATTACH_T, hWidth, -90, config.hipRotationY);
-  const leftHip = getPointOnTorso(rig, HIP_ATTACH_T, hWidth, 90, config.hipRotationY);
+  const rightShoulder = getPointOnTorso(rig, SHOULDER_T, sWidth, -90, config.chestTwist);
+  const leftShoulder = getPointOnTorso(rig, SHOULDER_T, sWidth, 90, config.chestTwist);
+  const rightHip = getPointOnTorso(rig, HIP_ATTACH_T, hWidth, -90, config.hipTwist);
+  const leftHip = getPointOnTorso(rig, HIP_ATTACH_T, hWidth, 90, config.hipTwist);
 
   leftShoulder.z -= 0.001;
   leftHip.z -= 0.001;
@@ -297,10 +299,10 @@ export interface CrossSection {
 export function computeCrossSections(rig: RigState, config: Config): CrossSection[] {
   const { lowerChest, upperHip } = getInnerTwists(config);
   const specs: Array<{ id: CrossSection['id']; t: number; twist: number; section: 'chest' | 'hip' }> = [
-    { id: 'upperChest', t: UPPER_CHEST_T, twist: config.chestRotationY, section: 'chest' },
+    { id: 'upperChest', t: UPPER_CHEST_T, twist: config.chestTwist, section: 'chest' },
     { id: 'lowerChest', t: CHEST_BOTTOM_T, twist: lowerChest, section: 'chest' },
     { id: 'upperHip', t: HIP_TOP_T, twist: upperHip, section: 'hip' },
-    { id: 'lowerHip', t: HIP_ATTACH_T, twist: config.hipRotationY, section: 'hip' },
+    { id: 'lowerHip', t: HIP_ATTACH_T, twist: config.hipTwist, section: 'hip' },
   ];
   return specs.map(({ id, t, twist, section }) => {
     const center = getBezierPoint(t, rig.head, rig.chest, rig.hip);
@@ -558,8 +560,9 @@ function eyebrowSamples(side: 1 | -1, cfg: Config, rotDeg: number, overshoot: nu
 
 function eyelidSamples(side: 1 | -1, cfg: Config, isUpper: boolean): Point[] {
   const cx = side * cfg.eyeSpacing;
-  const cy = isUpper ? cfg.eyelidUpperOffset : cfg.eyelidLowerOffset;
-  const curve = isUpper ? cfg.eyelidUpperCurvature : cfg.eyelidLowerCurvature;
+  const halfO = cfg.eyelidOpenness / 2;
+  const cy = isUpper ? -halfO : halfO;
+  const curve = cfg.eyelidCurve;
   const halfW = cfg.eyeSize * (isUpper ? 1.5 : 1.2);
   const x0 = cx - halfW, y0 = cy;
   const x1 = cx, y1 = cy + curve;
