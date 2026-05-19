@@ -64,6 +64,58 @@
           ...config,
           accessories: config.accessories.map(a => a.id === accId ? { ...a, position: { x: newX, y: newY } } : a)
         };
+      } else if (draggingNode === 'head_yawpitch') {
+        const gx = rig.head.x + config.headRadius + 70;
+        const gy = rig.head.y;
+        const gr = 36;
+        const yaw = Math.max(-90, Math.min(90, ((newX - gx) / gr) * 90));
+        const pitch = Math.max(-90, Math.min(90, -((newY - gy) / gr) * 90));
+        config = { ...config, headRotationY: yaw, headRotationX: pitch };
+      } else if (draggingNode === 'head_roll') {
+        const gx = rig.head.x + config.headRadius + 70;
+        const gy = rig.head.y;
+        const ang = Math.atan2(newX - gx, -(newY - gy)) * 180 / Math.PI;
+        config = { ...config, headRotationZ: ang };
+      } else if (draggingNode.startsWith('rot_')) {
+        const id = draggingNode.slice(4);
+        const isLeg = id.includes('Foot');
+        const limbId = isLeg
+          ? (id === 'leftFoot' ? 'leftLeg' : 'rightLeg')
+          : (id === 'leftHand' ? 'leftArm' : 'rightArm');
+        const limb = limbs.find(l => l.id === limbId);
+        if (limb) {
+          const dx = newX - limb.end.x;
+          const dy = newY - limb.end.y;
+          const toeDeg = Math.atan2(dy, dx) * 180 / Math.PI;
+          let rot: number;
+          let key: keyof Config;
+          if (isLeg) {
+            const dir = id === 'leftFoot' ? -1 : 1;
+            const baseDeg = dir === -1 ? 180 : 0;
+            rot = toeDeg - baseDeg;
+            key = id === 'leftFoot' ? 'leftFootRotation' : 'rightFootRotation';
+          } else {
+            const armDeg = Math.atan2(limb.end.y - rig.chest.y, limb.end.x - rig.chest.x) * 180 / Math.PI;
+            rot = toeDeg - armDeg;
+            key = id === 'leftHand' ? 'leftHandRotation' : 'rightHandRotation';
+          }
+          while (rot > 180) rot -= 360;
+          while (rot < -180) rot += 360;
+          config = { ...config, [key]: rot };
+        }
+      } else if (draggingNode === 'twist_chest' || draggingNode === 'twist_hip') {
+        const section = draggingNode === 'twist_chest' ? 'chest' : 'hip';
+        const cs = crossSections.find(c => c.section === section && (c.id === 'upperChest' || c.id === 'lowerHip'));
+        if (cs) {
+          const dx = newX - cs.center.x;
+          const dy = newY - cs.center.y;
+          const fwdLen = cs.radius * 1.4;
+          const proj = (dx * cs.normal.x + dy * cs.normal.y) / fwdLen;
+          const clamped = Math.max(-1, Math.min(1, proj));
+          const deg = Math.asin(clamped) * 180 / Math.PI;
+          const key = section === 'chest' ? 'chestRotationY' : 'hipRotationY';
+          config = { ...config, [key]: deg };
+        }
       } else {
         rig = { ...rig, [draggingNode as keyof RigState]: { x: newX, y: newY } };
       }
@@ -321,6 +373,36 @@
           <g id="rig-handles">
             {#if !config.hiddenControls.head}
               <Handle id="head" pt={rig.head} label="Head Center" color="#ef4444" shape="target" dragging={draggingNode === 'head'} onPointerDown={handlePointerDown} />
+
+              {@const gx = rig.head.x + config.headRadius + 70}
+              {@const gy = rig.head.y}
+              {@const gr = 36}
+              {@const gOuter = gr * 1.45}
+              {@const yawNorm = Math.max(-1, Math.min(1, config.headRotationY / 90))}
+              {@const pitchNorm = Math.max(-1, Math.min(1, -config.headRotationX / 90))}
+              {@const rollRad = config.headRotationZ * Math.PI / 180}
+              {@const rollX = gx + Math.sin(rollRad) * gOuter}
+              {@const rollY = gy - Math.cos(rollRad) * gOuter}
+              <g>
+                <circle cx={gx} cy={gy} r={gOuter} fill="none" stroke="#a78bfa" stroke-width="1" stroke-dasharray="2 3" opacity="0.55" pointer-events="none" />
+                <rect x={gx - gr} y={gy - gr} width={2 * gr} height={2 * gr} rx="6"
+                      fill="rgba(15,23,42,0.35)" stroke="#64748b" stroke-width="1" stroke-dasharray="3 2" opacity="0.7" pointer-events="none" />
+                <line x1={gx - gr} y1={gy} x2={gx + gr} y2={gy} stroke="#475569" stroke-width="0.5" opacity="0.6" pointer-events="none" />
+                <line x1={gx} y1={gy - gr} x2={gx} y2={gy + gr} stroke="#475569" stroke-width="0.5" opacity="0.6" pointer-events="none" />
+                <line x1={gx} y1={gy} x2={gx + yawNorm * gr} y2={gy + pitchNorm * gr}
+                      stroke="#f59e0b" stroke-width="1.5" opacity="0.7" pointer-events="none" />
+                <circle cx={gx + yawNorm * gr} cy={gy + pitchNorm * gr} r="7"
+                        fill={draggingNode === 'head_yawpitch' ? '#fbbf24' : '#f59e0b'}
+                        stroke="white" stroke-width="1.5"
+                        style="cursor: grab"
+                        onpointerdown={(e) => handlePointerDown('head_yawpitch', e)} />
+                <circle cx={rollX} cy={rollY} r="6"
+                        fill={draggingNode === 'head_roll' ? '#c4b5fd' : '#8b5cf6'}
+                        stroke="white" stroke-width="1.5"
+                        style="cursor: grab"
+                        onpointerdown={(e) => handlePointerDown('head_roll', e)} />
+                <text x={gx} y={gy - gOuter - 6} text-anchor="middle" font-size="9" fill="#94a3b8" pointer-events="none">head rot</text>
+              </g>
             {/if}
             {#if !config.hiddenControls.core}
               <Handle id="chest" pt={rig.chest} label="Chest" color="#22c55e" shape="diamond" dragging={draggingNode === 'chest'} onPointerDown={handlePointerDown} />
@@ -335,17 +417,28 @@
                 {@const fwdX = cs.normal.x * sinT * fwdLen}
                 {@const fwdY = cs.normal.y * sinT * fwdLen}
                 {@const ringColor = cs.section === 'chest' ? '#22c55e' : '#0ea5e9'}
-                <g opacity="0.85" pointer-events="none">
+                {@const draggable = cs.id === 'upperChest' || cs.id === 'lowerHip'}
+                {@const dragId = cs.section === 'chest' ? 'twist_chest' : 'twist_hip'}
+                <g opacity="0.85">
                   <ellipse
                     cx={cs.center.x} cy={cs.center.y}
                     rx={cs.radius} ry={cs.radius * 0.22}
                     transform={`rotate(${angleDeg} ${cs.center.x} ${cs.center.y})`}
                     fill="none" stroke={ringColor} stroke-width="1.5" stroke-dasharray="3 2"
+                    pointer-events="none"
                   />
                   <line x1={cs.center.x} y1={cs.center.y} x2={cs.center.x + fwdX} y2={cs.center.y + fwdY}
-                        stroke="#f59e0b" stroke-width="2" />
-                  <circle cx={cs.center.x + fwdX} cy={cs.center.y + fwdY} r="3.5"
-                          fill={cosT >= 0 ? '#f59e0b' : 'none'} stroke="#f59e0b" stroke-width="1.5" />
+                        stroke="#f59e0b" stroke-width="2" pointer-events="none" />
+                  {#if draggable}
+                    <circle cx={cs.center.x + fwdX} cy={cs.center.y + fwdY} r="7"
+                            fill={cosT >= 0 ? '#f59e0b' : 'transparent'} stroke="#f59e0b" stroke-width="2"
+                            style="cursor: grab"
+                            onpointerdown={(e) => handlePointerDown(dragId, e)} />
+                  {:else}
+                    <circle cx={cs.center.x + fwdX} cy={cs.center.y + fwdY} r="3.5"
+                            fill={cosT >= 0 ? '#f59e0b' : 'none'} stroke="#f59e0b" stroke-width="1.5"
+                            pointer-events="none" />
+                  {/if}
                 </g>
               {/each}
             {/if}
@@ -356,6 +449,23 @@
             {#if !config.hiddenControls.hand}
               <Handle id="leftHand" pt={rig.leftHand} label="Left Hand" color="#0ea5e9" shape="square" dragging={draggingNode === 'leftHand'} onPointerDown={handlePointerDown} />
               <Handle id="rightHand" pt={rig.rightHand} label="Right Hand" color="#0ea5e9" shape="square" dragging={draggingNode === 'rightHand'} onPointerDown={handlePointerDown} />
+
+              {#each [{ id: 'leftHand', pt: rig.leftHand, rot: config.leftHandRotation }, { id: 'rightHand', pt: rig.rightHand, rot: config.rightHandRotation }] as h (h.id)}
+                {@const armDeg = Math.atan2(h.pt.y - rig.chest.y, h.pt.x - rig.chest.x) * 180 / Math.PI}
+                {@const toeRad = (armDeg + h.rot) * Math.PI / 180}
+                {@const ringR = config.handRadius * 2.2 + 8}
+                {@const hx = h.pt.x + Math.cos(toeRad) * ringR}
+                {@const hy = h.pt.y + Math.sin(toeRad) * ringR}
+                <g opacity="0.85">
+                  <circle cx={h.pt.x} cy={h.pt.y} r={ringR} fill="none" stroke="#0ea5e9" stroke-width="0.8" stroke-dasharray="2 3" opacity="0.5" pointer-events="none" />
+                  <line x1={h.pt.x} y1={h.pt.y} x2={hx} y2={hy} stroke="#0ea5e9" stroke-width="1" opacity="0.6" pointer-events="none" />
+                  <circle cx={hx} cy={hy} r="6"
+                          fill={draggingNode === `rot_${h.id}` ? '#7dd3fc' : '#0ea5e9'}
+                          stroke="white" stroke-width="1.5"
+                          style="cursor: grab"
+                          onpointerdown={(e) => handlePointerDown(`rot_${h.id}`, e)} />
+                </g>
+              {/each}
             {/if}
             {#if !config.hiddenControls.leg}
               <Handle id="leftKnee" pt={rig.leftKnee} label="Left Knee" color="#a855f7" shape="circle" dragging={draggingNode === 'leftKnee'} onPointerDown={handlePointerDown} />
@@ -364,6 +474,23 @@
             {#if !config.hiddenControls.feet}
               <Handle id="leftFoot" pt={rig.leftFoot} label="Left Foot" color="#0ea5e9" shape="square" dragging={draggingNode === 'leftFoot'} onPointerDown={handlePointerDown} />
               <Handle id="rightFoot" pt={rig.rightFoot} label="Right Foot" color="#0ea5e9" shape="square" dragging={draggingNode === 'rightFoot'} onPointerDown={handlePointerDown} />
+
+              {#each [{ id: 'leftFoot', pt: rig.leftFoot, rot: config.leftFootRotation, dir: -1 }, { id: 'rightFoot', pt: rig.rightFoot, rot: config.rightFootRotation, dir: 1 }] as f (f.id)}
+                {@const baseDeg = f.dir === -1 ? 180 : 0}
+                {@const toeRad = (baseDeg + f.rot) * Math.PI / 180}
+                {@const ringR = config.footRadius * 2.2 + 8}
+                {@const fx = f.pt.x + Math.cos(toeRad) * ringR}
+                {@const fy = f.pt.y + Math.sin(toeRad) * ringR}
+                <g opacity="0.85">
+                  <circle cx={f.pt.x} cy={f.pt.y} r={ringR} fill="none" stroke="#0ea5e9" stroke-width="0.8" stroke-dasharray="2 3" opacity="0.5" pointer-events="none" />
+                  <line x1={f.pt.x} y1={f.pt.y} x2={fx} y2={fy} stroke="#0ea5e9" stroke-width="1" opacity="0.6" pointer-events="none" />
+                  <circle cx={fx} cy={fy} r="6"
+                          fill={draggingNode === `rot_${f.id}` ? '#7dd3fc' : '#0ea5e9'}
+                          stroke="white" stroke-width="1.5"
+                          style="cursor: grab"
+                          onpointerdown={(e) => handlePointerDown(`rot_${f.id}`, e)} />
+                </g>
+              {/each}
             {/if}
             {#if !config.hiddenControls.accessories}
               {#each config.accessories as acc (acc.id)}

@@ -387,32 +387,20 @@ export interface LimbTransform {
   isSmooth: boolean;
 }
 
-function waterdropPathH(L: number, T: number): string {
-  const bulbCenter = L * 0.62;
-  const arcRx = L * 0.38;
-  const arcRy = T * 0.5;
-  const ctrlX = L * 0.18;
-  const topY = -T * 0.5;
-  const botY = T * 0.5;
-  return `M 0 0 ` +
-    `Q ${ctrlX} ${botY} ${bulbCenter} ${botY} ` +
-    `A ${arcRx} ${arcRy} 0 0 0 ${bulbCenter} ${topY} ` +
-    `Q ${ctrlX} ${topY} 0 0 Z`;
+function handShape(r: number): string {
+  const rx = r * 1.1;
+  const ry = r * 0.85;
+  return `M 0 0 A ${rx} ${ry} 0 0 1 ${2 * rx} 0 A ${rx} ${ry} 0 0 1 0 0 Z`;
 }
 
-function waterdropPath(W: number, H: number, direction: 1 | -1): string {
-  const d = direction;
-  const apexX = d * W * 0.12;
-  const bulgeY = H * 0.62;
-  const arcRx = W * 0.5;
-  const arcRy = H * 0.38;
-  const leftX = -W * 0.5;
-  const rightX = W * 0.5;
-  const ctrlY = H * 0.18;
-  return `M ${apexX} 0 ` +
-    `Q ${rightX} ${ctrlY} ${rightX} ${bulgeY} ` +
-    `A ${arcRx} ${arcRy} 0 0 1 ${leftX} ${bulgeY} ` +
-    `Q ${leftX} ${ctrlY} ${apexX} 0 Z`;
+function footShape(r: number, dir: 1 | -1): string {
+  const toe = r * 1.5;
+  const heel = r * 0.5;
+  const rx = (toe + heel) / 2;
+  const ry = r * 0.7;
+  const heelX = -dir * heel;
+  const toeX = dir * toe;
+  return `M ${heelX} 0 A ${rx} ${ry} 0 0 1 ${toeX} 0 A ${rx} ${ry} 0 0 1 ${heelX} 0 Z`;
 }
 
 export function computeLimbTransform(limb: Limb, rig: RigState, config: Config): LimbTransform {
@@ -422,26 +410,17 @@ export function computeLimbTransform(limb: Limb, rig: RigState, config: Config):
   let pathD = '';
 
   if (isLeg) {
-    let direction: 1 | -1 = 1;
-    if (Math.abs(config.hipRotationY) > 5) {
-      direction = config.hipRotationY > 0 ? 1 : -1;
-    } else {
-      direction = (limb.end.x - rig.hip.x) >= 0 ? 1 : -1;
-    }
+    const direction: 1 | -1 = limb.id === 'leftLeg' ? -1 : 1;
     const manualRot = limb.id === 'leftLeg' ? config.leftFootRotation : config.rightFootRotation;
-
-    const W = 1.4 * r;
-    const H = 2 * r;
-
     transformStr = `translate(${limb.end.x}, ${limb.end.y}) rotate(${manualRot})`;
-    pathD = waterdropPath(W, H, direction);
+    pathD = footShape(r, direction);
   } else {
     const dx = limb.end.x - rig.chest.x;
     const dy = limb.end.y - rig.chest.y;
     const angle = Math.atan2(dy, dx) * (180 / Math.PI);
     const manualRot = limb.id === 'leftArm' ? config.leftHandRotation : config.rightHandRotation;
     transformStr = `translate(${limb.end.x}, ${limb.end.y}) rotate(${angle + manualRot})`;
-    pathD = waterdropPathH(2 * r, 1.4 * r);
+    pathD = handShape(r);
   }
 
   const isSmooth =
