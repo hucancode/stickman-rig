@@ -304,6 +304,17 @@
           class="w-full h-full text-slate-900 select-none"
           style:touch-action="none"
         >
+          {#if config.showGround}
+            <RoughPath
+              d={`M 0 ${config.groundY} L 800 ${config.groundY}`}
+              fill="none"
+              stroke="currentColor"
+              strokeWidth={config.outlineThickness * 0.6}
+              roughness={config.roughness}
+              bowing={config.bowing}
+            />
+          {/if}
+
           {#each backLimbs as limb (limb.id)}
             {@const lt = computeLimbTransform(limb, rig, config)}
             <g stroke="currentColor" stroke-width={config.outlineThickness} stroke-linecap="round" stroke-linejoin="round">
@@ -686,6 +697,11 @@
               <ScalarSlider label="Outline Size" value={config.outlineThickness} min={1} max={50} onChange={(v) => updateConfig('outlineThickness', v)} />
               <ScalarSlider label="Roughness" value={config.roughness} min={0} max={4} step={0.1} onChange={(v) => updateConfig('roughness', v)} />
               <ScalarSlider label="Bowing" value={config.bowing} min={0} max={10} step={0.1} onChange={(v) => updateConfig('bowing', v)} />
+            </ControlSection>
+
+            <ControlSection title="Ground">
+              <ToggleControl label="Show Ground" checked={config.showGround} onChange={(v) => updateConfig('showGround', v)} />
+              <ScalarSlider label="Ground Y" value={config.groundY} min={0} max={800} step={1} onChange={(v) => updateConfig('groundY', v)} />
             </ControlSection>
           {/if}
         </div>

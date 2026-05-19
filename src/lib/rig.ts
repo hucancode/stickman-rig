@@ -55,6 +55,8 @@ export interface Config {
   hairStyle: string;
   accessories: Accessory[];
   hiddenControls: Record<string, boolean>;
+  groundY: number;
+  showGround: boolean;
 }
 
 export interface RigState {
@@ -115,7 +117,8 @@ export const DEFAULT_CONFIG: Config = {
   roughness: 1, bowing: 2,
   leftHandRotation: 0, rightHandRotation: 0, leftFootRotation: 0, rightFootRotation: 0,
   hairStyle: 'none', accessories: [],
-  hiddenControls: { head: false, core: false, arm: false, hand: false, leg: false, feet: false, accessories: false, hair: false }
+  hiddenControls: { head: false, core: false, arm: false, hand: false, leg: false, feet: false, accessories: false, hair: false },
+  groundY: 620, showGround: true,
 };
 
 export const DEFAULT_RIG: RigState = {
@@ -390,6 +393,34 @@ export interface LimbTransform {
   isSmooth: boolean;
 }
 
+function waterdropPathH(L: number, T: number): string {
+  const bulbCenter = L * 0.62;
+  const arcRx = L * 0.38;
+  const arcRy = T * 0.5;
+  const ctrlX = L * 0.18;
+  const topY = -T * 0.5;
+  const botY = T * 0.5;
+  return `M 0 0 ` +
+    `Q ${ctrlX} ${botY} ${bulbCenter} ${botY} ` +
+    `A ${arcRx} ${arcRy} 0 0 0 ${bulbCenter} ${topY} ` +
+    `Q ${ctrlX} ${topY} 0 0 Z`;
+}
+
+function waterdropPath(W: number, H: number, direction: 1 | -1): string {
+  const d = direction;
+  const apexX = d * W * 0.12;
+  const bulgeY = H * 0.62;
+  const arcRx = W * 0.5;
+  const arcRy = H * 0.38;
+  const leftX = -W * 0.5;
+  const rightX = W * 0.5;
+  const ctrlY = H * 0.18;
+  return `M ${apexX} 0 ` +
+    `Q ${rightX} ${ctrlY} ${rightX} ${bulgeY} ` +
+    `A ${arcRx} ${arcRy} 0 0 1 ${leftX} ${bulgeY} ` +
+    `Q ${leftX} ${ctrlY} ${apexX} 0 Z`;
+}
+
 export function computeLimbTransform(limb: Limb, rig: RigState, config: Config): LimbTransform {
   const isLeg = limb.id.toLowerCase().includes('leg');
   const r = limb.radius;
@@ -397,26 +428,33 @@ export function computeLimbTransform(limb: Limb, rig: RigState, config: Config):
   let pathD = '';
 
   if (isLeg) {
-    let direction = 1;
+    let direction: 1 | -1 = 1;
     if (Math.abs(config.hipRotationY) > 5) {
       direction = config.hipRotationY > 0 ? 1 : -1;
     } else {
       direction = (limb.end.x - rig.hip.x) >= 0 ? 1 : -1;
     }
     const manualRot = limb.id === 'leftLeg' ? config.leftFootRotation : config.rightFootRotation;
+
+    const naturalW = 1.4 * r;
+    const naturalH = 2 * r;
+    let sy = 1;
+    if (config.showGround && limb.end.y + naturalH > config.groundY) {
+      sy = Math.max(0.55, (config.groundY - limb.end.y) / naturalH);
+    }
+    const sx = 1 / sy;
+    const W = naturalW * sx;
+    const H = naturalH * sy;
+
     transformStr = `translate(${limb.end.x}, ${limb.end.y}) rotate(${manualRot})`;
-    pathD = direction >= 0
-      ? `M 0 0 A ${r} ${r} 0 0 1 ${2 * r} 0 Z`
-      : `M 0 0 A ${r} ${r} 0 0 0 ${-2 * r} 0 Z`;
+    pathD = waterdropPath(W, H, direction);
   } else {
     const dx = limb.end.x - rig.chest.x;
     const dy = limb.end.y - rig.chest.y;
     const angle = Math.atan2(dy, dx) * (180 / Math.PI);
     const manualRot = limb.id === 'leftArm' ? config.leftHandRotation : config.rightHandRotation;
     transformStr = `translate(${limb.end.x}, ${limb.end.y}) rotate(${angle + manualRot})`;
-    pathD = dx >= 0
-      ? `M 0 0 A ${r} ${r} 0 0 1 0 ${2 * r} Z`
-      : `M 0 0 A ${r} ${r} 0 0 0 0 ${-2 * r} Z`;
+    pathD = waterdropPathH(2 * r, 1.4 * r);
   }
 
   const isSmooth =
