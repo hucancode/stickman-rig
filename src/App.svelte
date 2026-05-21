@@ -10,7 +10,7 @@
   import PointControl from './components/PointControl.svelte';
   import ToggleControl from './components/ToggleControl.svelte';
   import {
-    DEFAULT_CONFIG, DEFAULT_RIG, DEFAULT_HIDDEN_CONTROLS, EXPRESSION_PRESETS, POSE_PRESETS, BODY_TYPE_PRESETS,
+    DEFAULT_CONFIG, DEFAULT_RIG, DEFAULT_HIDDEN_CONTROLS, EXPRESSION_PRESETS, POSE_PRESETS, BODY_TYPE_PRESETS, MOUTH_STYLES,
     loadSaved, getLimbPath, getBodyPath, computeShouldersHips, computeLimbs,
     computeLimbTransform,
     computeCrossSections, computeTorsoSeams,
@@ -308,6 +308,7 @@
             {/if}
           {/each}
 
+
           {#each frontLimbs as limb (limb.id)}
             {@const lt = computeLimbTransform(limb, rig, config)}
             <g stroke="currentColor" stroke-width={config.outlineThickness} stroke-linecap="round" stroke-linejoin="round">
@@ -371,9 +372,11 @@
               <RoughPath d={face.rightBrow} fill="none" stroke="currentColor" strokeWidth={config.eyebrowThickness * config.outlineThickness * 0.3} strokeLinecap="round" strokeLinejoin="round" roughness={config.roughness} />
             {/if}
 
-            {#if face.mouth}
-              <RoughPath d={face.mouth} fill="none" stroke="currentColor" strokeWidth={config.outlineThickness * 0.5} strokeLinecap="round" roughness={config.roughness} />
-            {/if}
+            {#each face.mouth as part, i (i)}
+              {#if part.d}
+                <RoughPath d={part.d} fill={part.filled ? 'currentColor' : 'none'} stroke="currentColor" strokeWidth={config.outlineThickness * 0.5} strokeLinecap="round" strokeLinejoin="round" roughness={config.roughness} />
+              {/if}
+            {/each}
           </g>
 
           {#each config.accessories as acc (acc.id)}
@@ -658,6 +661,15 @@
             </ControlSection>
 
             <ControlSection title="Mouth">
+              <div class="text-sm font-medium text-slate-400">Style</div>
+              <div class="grid grid-cols-4 gap-1.5">
+                {#each MOUTH_STYLES as style (style)}
+                  <button
+                    onclick={() => updateConfig('mouthStyle', style)}
+                    class="px-2 py-1.5 rounded text-xs capitalize transition-colors {config.mouthStyle === style ? 'bg-blue-600 text-white' : 'bg-slate-800 hover:bg-slate-700 text-slate-300'}"
+                  >{style}</button>
+                {/each}
+              </div>
               <ScalarSlider label="Mouth Width" value={config.mouthWidth} min={2} max={40} step={1} onChange={(v) => updateConfig('mouthWidth', v)} />
               <ScalarSlider label="Smile/Frown" value={config.mouthScale} min={-3} max={3} step={0.1} onChange={(v) => updateConfig('mouthScale', v)} />
               <ScalarSlider label="Mouth Y Offset" value={config.mouthOffset} min={-10} max={40} step={1} onChange={(v) => updateConfig('mouthOffset', v)} />

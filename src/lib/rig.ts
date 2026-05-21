@@ -3,6 +3,9 @@ export interface Point {
   y: number;
 }
 
+export const MOUTH_STYLES = ['curve', 'flat', 'smirk', 'open', 'teeth', 'oh', 'kiss', 'tongue'] as const;
+export type MouthStyle = typeof MOUTH_STYLES[number];
+
 export interface Accessory {
   id: string;
   emoji: string;
@@ -29,6 +32,7 @@ export interface Config {
   mouthScale: number;
   mouthOffset: number;
   mouthWidth: number;
+  mouthStyle: MouthStyle;
   eyebrowOffset: number;
   eyebrowRotation: number;
   eyebrowThickness: number;
@@ -77,26 +81,30 @@ export interface Limb {
 }
 
 export const EXPRESSION_PRESETS: Record<string, Partial<Config>> = {
-  neutral: { eyeSize: 4, mouthScale: 0.5, mouthOffset: 15, eyebrowOffset: -10, eyebrowRotation: 0, eyebrowThickness: 2, eyelidOpenness: 10, eyelidCurve: 0, mouthWidth: 12, showEyelidUpper: true, showEyelidLower: false },
-  happy: { eyeSize: 4.5, mouthScale: 1.5, mouthOffset: 14, eyebrowOffset: -12, eyebrowRotation: -10, eyebrowThickness: 2, eyelidOpenness: 9, eyelidCurve: -1.5, mouthWidth: 16, showEyelidUpper: true, showEyelidLower: true },
-  sad: { eyeSize: 3.5, mouthScale: -1.2, mouthOffset: 18, eyebrowOffset: -9, eyebrowRotation: 15, eyebrowThickness: 2, eyelidOpenness: 9, eyelidCurve: 1, mouthWidth: 10, showEyelidUpper: true, showEyelidLower: false },
-  angry: { eyeSize: 3, mouthScale: -0.5, mouthOffset: 16, eyebrowOffset: -6, eyebrowRotation: -25, eyebrowThickness: 3, eyelidOpenness: 7, eyelidCurve: -0.5, mouthWidth: 14, showEyelidUpper: true, showEyelidLower: true },
-  surprised: { eyeSize: 6, mouthScale: 1.8, mouthOffset: 18, eyebrowOffset: -15, eyebrowRotation: 5, eyebrowThickness: 2, eyelidOpenness: 14, eyelidCurve: 0, mouthWidth: 8, showEyelidUpper: false, showEyelidLower: false },
-  confused: { eyeSize: 4, mouthScale: -0.2, mouthOffset: 16, eyebrowOffset: -10, eyebrowRotation: -10, eyebrowThickness: 2, eyelidOpenness: 9, eyelidCurve: 0, mouthWidth: 10, showEyelidUpper: true, showEyelidLower: false },
-  excited: { eyeSize: 5, mouthScale: 2, mouthOffset: 13, eyebrowOffset: -13, eyebrowRotation: -5, eyebrowThickness: 2.5, eyelidOpenness: 12, eyelidCurve: -0.5, mouthWidth: 18, showEyelidUpper: true, showEyelidLower: true },
-  scared: { eyeSize: 5, mouthScale: -1, mouthOffset: 17, eyebrowOffset: -14, eyebrowRotation: 10, eyebrowThickness: 1.5, eyelidOpenness: 12, eyelidCurve: 0, mouthWidth: 14, showEyelidUpper: false, showEyelidLower: false },
-  disgusted: { eyeSize: 3, mouthScale: -0.8, mouthOffset: 15, eyebrowOffset: -7, eyebrowRotation: 20, eyebrowThickness: 2.5, eyelidOpenness: 5, eyelidCurve: 0.5, mouthWidth: 10, showEyelidUpper: true, showEyelidLower: true },
-  tired: { eyeSize: 3, mouthScale: -0.2, mouthOffset: 17, eyebrowOffset: -8, eyebrowRotation: 0, eyebrowThickness: 2, eyelidOpenness: 4, eyelidCurve: 1.5, mouthWidth: 12, showEyelidUpper: true, showEyelidLower: true },
-  relaxed: { eyeSize: 3.5, mouthScale: 0.8, mouthOffset: 16, eyebrowOffset: -9, eyebrowRotation: 0, eyebrowThickness: 2, eyelidOpenness: 6, eyelidCurve: 0, mouthWidth: 14, showEyelidUpper: true, showEyelidLower: false },
-  sly: { eyeSize: 3.5, mouthScale: 0.8, mouthOffset: 15, eyebrowOffset: -8, eyebrowRotation: -15, eyebrowThickness: 2.5, eyelidOpenness: 6, eyelidCurve: -1, mouthWidth: 15, showEyelidUpper: true, showEyelidLower: true },
-  suspicious: { eyeSize: 2.5, mouthScale: -0.2, mouthOffset: 16, eyebrowOffset: -7, eyebrowRotation: 5, eyebrowThickness: 2, eyelidOpenness: 4, eyelidCurve: 0.5, mouthWidth: 12, showEyelidUpper: true, showEyelidLower: true },
-  determined: { eyeSize: 4, mouthScale: 0.1, mouthOffset: 15, eyebrowOffset: -7, eyebrowRotation: -20, eyebrowThickness: 3, eyelidOpenness: 8, eyelidCurve: 0, mouthWidth: 14, showEyelidUpper: true, showEyelidLower: false },
-  worried: { eyeSize: 4.5, mouthScale: -0.8, mouthOffset: 17, eyebrowOffset: -12, eyebrowRotation: 20, eyebrowThickness: 2, eyelidOpenness: 10, eyelidCurve: 0.5, mouthWidth: 12, showEyelidUpper: true, showEyelidLower: false },
-  dizzy: { eyeSize: 3, mouthScale: 0.5, mouthOffset: 17, eyebrowOffset: -10, eyebrowRotation: 5, eyebrowThickness: 2, eyelidOpenness: 7, eyelidCurve: 0, mouthWidth: 12, showEyelidUpper: false, showEyelidLower: true },
-  cheeky: { eyeSize: 4, mouthScale: 1.2, mouthOffset: 14, eyebrowOffset: -11, eyebrowRotation: -5, eyebrowThickness: 2, eyelidOpenness: 9, eyelidCurve: -0.5, mouthWidth: 14, showEyelidUpper: true, showEyelidLower: true },
-  sleepy: { eyeSize: 2, mouthScale: 0.2, mouthOffset: 17, eyebrowOffset: -8, eyebrowRotation: 0, eyebrowThickness: 2, eyelidOpenness: 2, eyelidCurve: 1.5, mouthWidth: 10, showEyelidUpper: true, showEyelidLower: true },
-  focused: { eyeSize: 3.5, mouthScale: 0, mouthOffset: 15, eyebrowOffset: -8, eyebrowRotation: -10, eyebrowThickness: 2.5, eyelidOpenness: 6, eyelidCurve: 0, mouthWidth: 10, showEyelidUpper: true, showEyelidLower: false },
-  crying: { eyeSize: 4, mouthScale: -1.5, mouthOffset: 18, eyebrowOffset: -10, eyebrowRotation: 15, eyebrowThickness: 2, eyelidOpenness: 10, eyelidCurve: 0.5, mouthWidth: 16, showEyelidUpper: true, showEyelidLower: true }
+  neutral: { eyeSize: 4, mouthScale: 0.5, mouthOffset: 15, eyebrowOffset: -10, eyebrowRotation: 0, eyebrowThickness: 2, eyelidOpenness: 10, eyelidCurve: 0, mouthWidth: 12, showEyelidUpper: true, showEyelidLower: false, mouthStyle: 'curve' },
+  happy: { eyeSize: 4.5, mouthScale: 1.5, mouthOffset: 14, eyebrowOffset: -12, eyebrowRotation: -10, eyebrowThickness: 2, eyelidOpenness: 9, eyelidCurve: -1.5, mouthWidth: 16, showEyelidUpper: true, showEyelidLower: true, mouthStyle: 'curve' },
+  sad: { eyeSize: 3.5, mouthScale: -1.2, mouthOffset: 18, eyebrowOffset: -9, eyebrowRotation: 15, eyebrowThickness: 2, eyelidOpenness: 9, eyelidCurve: 1, mouthWidth: 10, showEyelidUpper: true, showEyelidLower: false, mouthStyle: 'curve' },
+  angry: { eyeSize: 3, mouthScale: -0.5, mouthOffset: 16, eyebrowOffset: -6, eyebrowRotation: -25, eyebrowThickness: 3, eyelidOpenness: 7, eyelidCurve: -0.5, mouthWidth: 14, showEyelidUpper: true, showEyelidLower: true, mouthStyle: 'flat' },
+  surprised: { eyeSize: 6, mouthScale: 1.8, mouthOffset: 18, eyebrowOffset: -15, eyebrowRotation: 5, eyebrowThickness: 2, eyelidOpenness: 14, eyelidCurve: 0, mouthWidth: 8, showEyelidUpper: false, showEyelidLower: false, mouthStyle: 'oh' },
+  confused: { eyeSize: 4, mouthScale: -0.2, mouthOffset: 16, eyebrowOffset: -10, eyebrowRotation: -10, eyebrowThickness: 2, eyelidOpenness: 9, eyelidCurve: 0, mouthWidth: 10, showEyelidUpper: true, showEyelidLower: false, mouthStyle: 'smirk' },
+  excited: { eyeSize: 5, mouthScale: 2, mouthOffset: 13, eyebrowOffset: -13, eyebrowRotation: -5, eyebrowThickness: 2.5, eyelidOpenness: 12, eyelidCurve: -0.5, mouthWidth: 18, showEyelidUpper: true, showEyelidLower: true, mouthStyle: 'teeth' },
+  scared: { eyeSize: 5, mouthScale: -1, mouthOffset: 17, eyebrowOffset: -14, eyebrowRotation: 10, eyebrowThickness: 1.5, eyelidOpenness: 12, eyelidCurve: 0, mouthWidth: 14, showEyelidUpper: false, showEyelidLower: false, mouthStyle: 'open' },
+  disgusted: { eyeSize: 3, mouthScale: -0.8, mouthOffset: 15, eyebrowOffset: -7, eyebrowRotation: 20, eyebrowThickness: 2.5, eyelidOpenness: 5, eyelidCurve: 0.5, mouthWidth: 10, showEyelidUpper: true, showEyelidLower: true, mouthStyle: 'curve' },
+  tired: { eyeSize: 3, mouthScale: -0.2, mouthOffset: 17, eyebrowOffset: -8, eyebrowRotation: 0, eyebrowThickness: 2, eyelidOpenness: 4, eyelidCurve: 1.5, mouthWidth: 12, showEyelidUpper: true, showEyelidLower: true, mouthStyle: 'flat' },
+  relaxed: { eyeSize: 3.5, mouthScale: 0.8, mouthOffset: 16, eyebrowOffset: -9, eyebrowRotation: 0, eyebrowThickness: 2, eyelidOpenness: 6, eyelidCurve: 0, mouthWidth: 14, showEyelidUpper: true, showEyelidLower: false, mouthStyle: 'curve' },
+  sly: { eyeSize: 3.5, mouthScale: 0.8, mouthOffset: 15, eyebrowOffset: -8, eyebrowRotation: -15, eyebrowThickness: 2.5, eyelidOpenness: 6, eyelidCurve: -1, mouthWidth: 15, showEyelidUpper: true, showEyelidLower: true, mouthStyle: 'smirk' },
+  suspicious: { eyeSize: 2.5, mouthScale: -0.2, mouthOffset: 16, eyebrowOffset: -7, eyebrowRotation: 5, eyebrowThickness: 2, eyelidOpenness: 4, eyelidCurve: 0.5, mouthWidth: 12, showEyelidUpper: true, showEyelidLower: true, mouthStyle: 'flat' },
+  determined: { eyeSize: 4, mouthScale: 0.1, mouthOffset: 15, eyebrowOffset: -7, eyebrowRotation: -20, eyebrowThickness: 3, eyelidOpenness: 8, eyelidCurve: 0, mouthWidth: 14, showEyelidUpper: true, showEyelidLower: false, mouthStyle: 'flat' },
+  worried: { eyeSize: 4.5, mouthScale: -0.8, mouthOffset: 17, eyebrowOffset: -12, eyebrowRotation: 20, eyebrowThickness: 2, eyelidOpenness: 10, eyelidCurve: 0.5, mouthWidth: 12, showEyelidUpper: true, showEyelidLower: false, mouthStyle: 'curve' },
+  dizzy: { eyeSize: 3, mouthScale: 0.5, mouthOffset: 17, eyebrowOffset: -10, eyebrowRotation: 5, eyebrowThickness: 2, eyelidOpenness: 7, eyelidCurve: 0, mouthWidth: 12, showEyelidUpper: false, showEyelidLower: true, mouthStyle: 'tongue' },
+  cheeky: { eyeSize: 4, mouthScale: 1.2, mouthOffset: 14, eyebrowOffset: -11, eyebrowRotation: -5, eyebrowThickness: 2, eyelidOpenness: 9, eyelidCurve: -0.5, mouthWidth: 14, showEyelidUpper: true, showEyelidLower: true, mouthStyle: 'tongue' },
+  sleepy: { eyeSize: 2, mouthScale: 0.2, mouthOffset: 17, eyebrowOffset: -8, eyebrowRotation: 0, eyebrowThickness: 2, eyelidOpenness: 2, eyelidCurve: 1.5, mouthWidth: 10, showEyelidUpper: true, showEyelidLower: true, mouthStyle: 'oh' },
+  focused: { eyeSize: 3.5, mouthScale: 0, mouthOffset: 15, eyebrowOffset: -8, eyebrowRotation: -10, eyebrowThickness: 2.5, eyelidOpenness: 6, eyelidCurve: 0, mouthWidth: 10, showEyelidUpper: true, showEyelidLower: false, mouthStyle: 'flat' },
+  crying: { eyeSize: 4, mouthScale: -1.5, mouthOffset: 18, eyebrowOffset: -10, eyebrowRotation: 15, eyebrowThickness: 2, eyelidOpenness: 10, eyelidCurve: 0.5, mouthWidth: 16, showEyelidUpper: true, showEyelidLower: true, mouthStyle: 'open' },
+  kissy: { eyeSize: 3, mouthScale: 0, mouthOffset: 16, eyebrowOffset: -11, eyebrowRotation: -5, eyebrowThickness: 2, eyelidOpenness: 5, eyelidCurve: -1, mouthWidth: 10, showEyelidUpper: true, showEyelidLower: true, mouthStyle: 'kiss' },
+  smug: { eyeSize: 3.5, mouthScale: 0.4, mouthOffset: 15, eyebrowOffset: -10, eyebrowRotation: -8, eyebrowThickness: 2.5, eyelidOpenness: 6, eyelidCurve: -0.5, mouthWidth: 14, showEyelidUpper: true, showEyelidLower: true, mouthStyle: 'smirk' },
+  laughing: { eyeSize: 4, mouthScale: 2, mouthOffset: 13, eyebrowOffset: -13, eyebrowRotation: -8, eyebrowThickness: 2.5, eyelidOpenness: 4, eyelidCurve: -2, mouthWidth: 20, showEyelidUpper: true, showEyelidLower: true, mouthStyle: 'teeth' },
+  shocked: { eyeSize: 6.5, mouthScale: 1.5, mouthOffset: 18, eyebrowOffset: -16, eyebrowRotation: 8, eyebrowThickness: 2, eyelidOpenness: 14, eyelidCurve: 0, mouthWidth: 12, showEyelidUpper: false, showEyelidLower: false, mouthStyle: 'open' }
 };
 
 export type PoseRot = Pick<Config,
@@ -248,7 +256,7 @@ export const BODY_TYPE_PRESETS: Record<string, BodyGeom> = {
 export const DEFAULT_CONFIG: Config = {
   headRadius: 80, neckWidth: 35, chestWidth: 75, hipWidth: 80, handRadius: 15, footRadius: 15,
   outlineThickness: 1, smoothLeftArm: true, smoothRightArm: true, smoothLeftLeg: true, smoothRightLeg: true,
-  eyeSize: 4, eyeSpacing: 25, mouthScale: 1, mouthOffset: 15, mouthWidth: 12,
+  eyeSize: 4, eyeSpacing: 25, mouthScale: 1, mouthOffset: 15, mouthWidth: 12, mouthStyle: 'curve',
   eyebrowOffset: -10, eyebrowRotation: 0, eyebrowThickness: 2,
   eyelidOpenness: 10, eyelidCurve: 0,
   showEyelidUpper: false, showEyelidLower: false,
@@ -657,6 +665,8 @@ export function computeHeadBaseRoll(rig: RigState): number {
   return -Math.atan2(dx, dy) * 180 / Math.PI;
 }
 
+export interface MouthPart { d: string; filled: boolean; }
+
 export interface FacePaths {
   leftEye: Projection;
   rightEye: Projection;
@@ -668,7 +678,7 @@ export interface FacePaths {
   rightLowerLid: string;
   leftEyeClip: string;
   rightEyeClip: string;
-  mouth: string;
+  mouth: MouthPart[];
   leftGlabella: string;
   rightGlabella: string;
   glabellaOvershoot: number;
@@ -741,17 +751,86 @@ function eyeClipPath(side: 1 | -1, cfg: Config, rx: number, ry: number, rz: numb
   return d + ' Z';
 }
 
-function mouthSamples(cfg: Config): Point[] {
-  const x0 = -cfg.mouthWidth / 2, y0 = cfg.mouthOffset;
-  const x1 = 0, y1 = cfg.mouthOffset + 8 * cfg.mouthScale;
-  const x2 = cfg.mouthWidth / 2, y2 = cfg.mouthOffset;
-  const N = 14;
+function bezierSamples(x0: number, y0: number, x1: number, y1: number, x2: number, y2: number, N: number): Point[] {
   const pts: Point[] = [];
   for (let i = 0; i <= N; i++) {
     const t = i / N, mt = 1 - t;
     pts.push({ x: mt*mt*x0 + 2*mt*t*x1 + t*t*x2, y: mt*mt*y0 + 2*mt*t*y1 + t*t*y2 });
   }
   return pts;
+}
+
+function ellipseSamples(cx: number, cy: number, rx: number, ry: number, N = 20): Point[] {
+  const pts: Point[] = [];
+  for (let i = 0; i <= N; i++) {
+    const a = (i / N) * Math.PI * 2;
+    pts.push({ x: cx + rx * Math.cos(a), y: cy + ry * Math.sin(a) });
+  }
+  return pts;
+}
+
+export interface MouthGeom { samples: Point[]; closed: boolean; filled: boolean; }
+
+export function buildMouthGeometry(cfg: Config): MouthGeom[] {
+  const style: MouthStyle = cfg.mouthStyle ?? 'curve';
+  const w = cfg.mouthWidth;
+  const y = cfg.mouthOffset;
+  const s = cfg.mouthScale;
+  switch (style) {
+    case 'flat':
+      return [{ samples: [{ x: -w/2, y }, { x: w/2, y }], closed: false, filled: false }];
+    case 'smirk': {
+      const dir = s >= 0 ? 1 : -1;
+      const mag = Math.max(0.3, Math.abs(s));
+      const samples = bezierSamples(-w/2, y - 3 * mag * dir, 0, y, w/2, y + 5 * mag * dir, 14);
+      return [{ samples, closed: false, filled: false }];
+    }
+    case 'open': {
+      const ry = Math.max(3, 4 + 3 * Math.abs(s));
+      return [{ samples: ellipseSamples(0, y + ry, w/2, ry, 24), closed: true, filled: true }];
+    }
+    case 'oh': {
+      const r = Math.max(2, w / 4);
+      return [{ samples: ellipseSamples(0, y + r, r, r, 18), closed: true, filled: true }];
+    }
+    case 'kiss': {
+      const rx = Math.max(2, w / 5);
+      const ry = Math.max(3, w / 3);
+      return [{ samples: ellipseSamples(0, y + ry, rx, ry, 18), closed: true, filled: true }];
+    }
+    case 'teeth': {
+      const main = bezierSamples(-w/2, y, 0, y + 8 * s, w/2, y, 14);
+      const chord: Point[] = [{ x: -w/2, y: y + 2 * s }, { x: w/2, y: y + 2 * s }];
+      const verts: MouthGeom[] = [];
+      const teethCount = 3;
+      const teethH = 3 + 1.5 * Math.abs(s);
+      for (let i = 1; i <= teethCount; i++) {
+        const xx = -w/2 + (w * i / (teethCount + 1));
+        verts.push({ samples: [{ x: xx, y: y + 2 * s - teethH/2 }, { x: xx, y: y + 2 * s + teethH/2 }], closed: false, filled: false });
+      }
+      return [
+        { samples: main, closed: false, filled: false },
+        { samples: chord, closed: false, filled: false },
+        ...verts,
+      ];
+    }
+    case 'tongue': {
+      const ry = Math.max(4, 5 + 2 * Math.abs(s));
+      const oval = ellipseSamples(0, y + ry, w/2, ry, 24);
+      const tongueR = w / 4;
+      const tcy = y + ry + tongueR * 0.4;
+      const tongue = ellipseSamples(0, tcy, tongueR, tongueR * 0.75, 16);
+      return [
+        { samples: oval, closed: true, filled: true },
+        { samples: tongue, closed: true, filled: false },
+      ];
+    }
+    case 'curve':
+    default: {
+      const samples = bezierSamples(-w/2, y, 0, y + 8 * s, w/2, y, 14);
+      return [{ samples, closed: false, filled: false }];
+    }
+  }
 }
 
 function glabellaSamples(side: 1 | -1, cfg: Config, overshoot: number): Point[] {
@@ -783,7 +862,11 @@ export function computeFacePaths(
     rightLowerLid: samplePath3D(eyelidSamples(1, cfg, false), headRx, headRy, headRz, yawRad, pitchRad),
     leftEyeClip: eyeClipPath(-1, cfg, headRx, headRy, headRz, yawRad, pitchRad),
     rightEyeClip: eyeClipPath(1, cfg, headRx, headRy, headRz, yawRad, pitchRad),
-    mouth: samplePath3D(mouthSamples(cfg), headRx, headRy, headRz, yawRad, pitchRad),
+    mouth: buildMouthGeometry(cfg).map(g => {
+      let d = samplePath3D(g.samples, headRx, headRy, headRz, yawRad, pitchRad);
+      if (g.closed && d) d += ' Z';
+      return { d, filled: g.filled };
+    }),
     leftGlabella: samplePath3D(glabellaSamples(-1, cfg, glabellaOvershoot), headRx, headRy, headRz, yawRad, pitchRad),
     rightGlabella: samplePath3D(glabellaSamples(1, cfg, glabellaOvershoot), headRx, headRy, headRz, yawRad, pitchRad),
     glabellaOvershoot,
